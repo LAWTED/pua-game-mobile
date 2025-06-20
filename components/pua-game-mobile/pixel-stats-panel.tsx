@@ -22,6 +22,7 @@ interface StatsHistory {
 interface PixelStatsPanelProps {
   statsHistory: StatsHistory[];
   statsHighlight: boolean;
+  showBorder?: boolean;
   currentStats: {
     student: {
       psi: number;
@@ -41,6 +42,7 @@ interface PixelStatsPanelProps {
 export function PixelStatsPanel({
   statsHistory,
   statsHighlight,
+  showBorder = true,
   currentStats
 }: PixelStatsPanelProps) {
   const stats = currentStats.student;
@@ -62,7 +64,7 @@ export function PixelStatsPanel({
   };
 
   return (
-    <div className={`pixel-panel bg-gray-100 p-4 ${statsHighlight ? 'animate-pulse' : ''}`}>
+    <div className={`${showBorder ? 'pixel-panel' : ''} bg-gray-100 p-4 ${statsHighlight ? 'animate-pulse' : ''}`}>
       <div className="grid grid-cols-2 gap-4">
         {/* 学生数值 */}
         <div className="space-y-2">

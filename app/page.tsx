@@ -2,13 +2,12 @@
 
 import { useRef, useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { Drawer } from "vaul";
 import {
   PixelStatsPanel,
   PixelDialogPanel,
-  PixelInteractionPanel,
   PixelGameHeader,
 } from "@/components/pua-game-mobile";
+import { SlidingInteractionPanel } from "@/components/sliding-interaction-panel";
 
 // 定义交互类型
 type InteractionMode = "idle" | "choices" | "dice";
@@ -29,7 +28,7 @@ export default function PuaGameMobile() {
   const [isManualRolling, setIsManualRolling] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const currentModel = "deepseek";
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(0);
 
   // 交互状态管理
   const [interactionMode, setInteractionMode] =
@@ -283,7 +282,6 @@ export default function PuaGameMobile() {
           }))
         );
         setInteractionMode("choices");
-        setDrawerOpen(true); // 自动打开抽屉
         return null;
       }
 
@@ -291,7 +289,6 @@ export default function PuaGameMobile() {
         setDiceToolCallId(toolCall.toolCallId);
         setInteractionMode("dice");
         setDiceValue(null);
-        setDrawerOpen(true); // 自动打开抽屉
         return null;
       }
 
@@ -416,7 +413,6 @@ export default function PuaGameMobile() {
   const handleSelectChoice = (choice: string, toolCallId: string) => {
     setInteractionMode("idle");
     setCurrentChoices([]);
-    setDrawerOpen(false);
     addToolResult({
       toolCallId: toolCallId,
       result: choice,
@@ -439,7 +435,6 @@ export default function PuaGameMobile() {
         setInteractionMode("idle");
         setDiceValue(null);
         setDiceToolCallId(null);
-        setDrawerOpen(false);
       }, 2000);
     }, 1500);
   };
@@ -448,8 +443,6 @@ export default function PuaGameMobile() {
   const startGame = () => {
     setGameStarted(true);
     setGameDay(1);
-    // 确保抽屉关闭，等待游戏逻辑触发时再自动打开
-    setDrawerOpen(false);
     append({
       role: "user",
       content: "开始游戏",
@@ -466,8 +459,11 @@ export default function PuaGameMobile() {
         />
       </div>
 
-      {/* 对话面板 - 始终可见，占据主要空间 */}
-      <div className="flex-1 px-4 pt-4 pb-32">
+      {/* 对话面板 - 始终可见，占据主要空间，动态底部padding */}
+      <div 
+        className="flex-1 px-4 pt-4 transition-all duration-300"
+        style={{ paddingBottom: `${Math.max(bottomPanelHeight + 36, 140)}px` }}
+      >
         <PixelDialogPanel
           messages={messages}
           status={status}
@@ -476,65 +472,23 @@ export default function PuaGameMobile() {
         />
       </div>
 
-      {/* 数值面板 - 固定在底部 */}
-      <div className="fixed bottom-20 left-0 right-0 z-30 px-4 py-2 bg-gray-100">
-        <PixelStatsPanel
-          statsHistory={statsHistory}
-          statsHighlight={statsHighlight}
-          currentStats={currentStats}
-        />
-      </div>
+      {/* 滑动交互面板 - 包含数值面板和交互区 */}
+      <SlidingInteractionPanel
+        interactionMode={interactionMode}
+        currentChoices={currentChoices}
+        diceValue={diceValue}
+        isManualRolling={isManualRolling}
+        gameStarted={gameStarted}
+        onSelectChoice={handleSelectChoice}
+        onDiceClick={handleDiceClick}
+        onSendHelp={handleSendHelp}
+        onStartGame={startGame}
+        onHeightChange={setBottomPanelHeight}
+        statsHistory={statsHistory}
+        statsHighlight={statsHighlight}
+        currentStats={currentStats}
+      />
 
-      {/* 交互区 - 使用 Vaul Drawer */}
-      <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
-          <Drawer.Content
-            className="bg-white flex flex-col fixed bottom-0 left-0 right-0 rounded-t-[10px]"
-            style={{ zIndex: 50 }}
-          >
-            <Drawer.Title className="sr-only">交互区</Drawer.Title>
-            <div className="flex-1 p-4">
-              <div className="pixel-panel p-4 pt-0">
-                <div className="flex-shrink-0 mx-auto w-12 h-1.5 rounded-full bg-zinc-300 mt-4 mb-4" />
-                <PixelInteractionPanel
-                  interactionMode={interactionMode}
-                  currentChoices={currentChoices}
-                  diceValue={diceValue}
-                  isManualRolling={isManualRolling}
-                  gameStarted={gameStarted}
-                  onSelectChoice={handleSelectChoice}
-                  onDiceClick={handleDiceClick}
-                  onSendHelp={handleSendHelp}
-                />
-              </div>
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
-
-      {/* 底部操作按钮 - 固定在底部 */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-        {!gameStarted ? (
-          <button
-            onClick={startGame}
-            className="pixel-button px-8 py-4 bg-green-500 text-white text-lg"
-          >
-            开始游戏
-          </button>
-        ) : (
-          <button
-            onClick={() => {
-              console.log("切换抽屉状态:", !drawerOpen);
-              setDrawerOpen(!drawerOpen);
-            }}
-            className="pixel-button px-6 py-3 bg-blue-500 text-white"
-          >
-            {drawerOpen ? "关闭" : "打开"}交互区{" "}
-            {drawerOpen ? "(已开)" : "(已关)"}
-          </button>
-        )}
-      </div>
 
       {/* 游戏说明弹窗 */}
       {showInstructions && (
