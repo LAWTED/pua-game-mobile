@@ -347,3 +347,51 @@
 .pixel-button-small:active {
   transform: translate(2px, 2px);
 }
+
+/* Pixel loading animation */
+.pixel-loading {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Pixel art divider */
+.pixel-divider {
+  height: 4px;
+  background-image: 
+    linear-gradient(90deg, 
+      #333 0%, #333 8.33%, 
+      transparent 8.33%, transparent 16.66%,
+      #333 16.66%, #333 25%,
+      transparent 25%, transparent 33.33%,
+      #333 33.33%, #333 41.66%,
+      transparent 41.66%, transparent 50%,
+      #333 50%, #333 58.33%,
+      transparent 58.33%, transparent 66.66%,
+      #333 66.66%, #333 75%,
+      transparent 75%, transparent 83.33%,
+      #333 83.33%, #333 91.66%,
+      transparent 91.66%, transparent 100%
+    );
+  background-size: 24px 4px;
+  background-repeat: repeat-x;
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+
+/* Pixel stats panel bar styles */
+.pixel-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: #000;
+  border: 1px solid #000;
+  position: relative;
+}
+
+.pixel-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
