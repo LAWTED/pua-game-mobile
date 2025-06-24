@@ -165,7 +165,7 @@ export function PixelDialogPanel({
                             </span>
                           </div>
                           {/* 骰子结果后添加像素风分割线 */}
-                          <div className="pixel-divider mt-3 mb-2"></div>
+                          <div className="pixel-divider my-4"></div>
                         </div>
                       );
                     }
