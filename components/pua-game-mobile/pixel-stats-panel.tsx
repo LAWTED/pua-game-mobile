@@ -148,7 +148,7 @@ export function PixelStatsPanel({
 
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="pixel-text text-xs">😰 ANX</span>
+              <span className="pixel-text text-xs">🔥 ANX</span>
               <span className="pixel-text text-xs">
                 <NumberFlow value={professorStats.anxiety} />
               </span>
