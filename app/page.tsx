@@ -296,7 +296,28 @@ export default function PuaGameMobile() {
 
 简单介绍一下游戏背景,然后向玩家展示所有的学生卡片,让玩家选择一个角色开始游戏。选择完角色后，以【第1天】早上 开始第一个场景。
 
-在玩家选择角色后，立即使用 updateStats 工具设置初始数值，根据所选角色设定不同的初始值。
+### 初始数值设置
+在玩家选择角色后，必须立即使用 updateStats 工具设置初始数值：
+
+**陆星河（富二代）初始值**：
+updateStats({
+  studentDelta: {psi: 30, progress: 20, evidence: 0, network: 15, money: 80},
+  professorDelta: {authority: 60, risk: 5, anxiety: 20},
+  desc: "游戏开始，初始化数值",
+  studentDesc: "陆星河入学，富二代背景带来资源优势",
+  professorDesc: "郑凤教授初始状态，准备开始PUA"
+})
+
+**赵一鸣（小镇做题家）初始值**：
+updateStats({
+  studentDelta: {psi: 40, progress: 30, evidence: 0, network: 10, money: 20},
+  professorDelta: {authority: 60, risk: 5, anxiety: 20},
+  desc: "游戏开始，初始化数值",
+  studentDesc: "赵一鸣入学，学霸背景但压力较大",
+  professorDesc: "郑凤教授初始状态，准备开始PUA"
+})
+
+**重要**：初始化时必须传入所有5个学生数值和3个教授数值，不能遗漏任何一个。
 
 `;
 
