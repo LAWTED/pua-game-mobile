@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Message } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Copy, Check } from "lucide-react";
 
 interface PixelDialogPanelProps {
   messages: Message[];
@@ -17,17 +18,82 @@ export function PixelDialogPanel({
   gameIntroduction
 }: PixelDialogPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 复制对话内容到剪贴板
+  const copyToClipboard = async () => {
+    let content = '';
+
+    if (!gameStarted) {
+      content = gameIntroduction;
+    } else {
+      content = '# 🎭 学术江湖生存记 - 对话记录\n\n';
+      content += `**导出时间**: ${new Date().toLocaleString('zh-CN')}\n\n---\n\n`;
+
+      messages.forEach((message, index) => {
+        const parts = (message as any).parts ||
+                     (message as any).experimental_providerMetadata?.parts ||
+                     null;
+
+        if (message.role === "assistant" && parts) {
+          parts.forEach((part: any) => {
+            if (part.type === "text") {
+              content += `${part.text}\n\n`;
+            }
+            if (part.type === "tool-invocation" && part.toolInvocation?.result) {
+              if (part.toolInvocation.toolName === "renderChoices") {
+                content += `👤 **玩家选择**: ${part.toolInvocation.result}\n\n`;
+              }
+              if (part.toolInvocation.toolName === "rollADice") {
+                content += `🎲 **骰子结果**: ${part.toolInvocation.result}\n\n`;
+              }
+            }
+          });
+
+          if (index < messages.length - 1) {
+            content += '---\n\n';
+          }
+        }
+      });
+    }
+
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('复制失败:', error);
+      // 后备方案：创建临时文本区域
+      const textArea = document.createElement('textarea');
+      textArea.value = content;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   console.log(messages);
 
   return (
     <div className="space-y-4">
       {!gameStarted && (
-        <div className="pixel-panel bg-white p-6">
+        <div className="pixel-panel bg-white p-6 relative">
+          {/* 复制按钮 */}
+          <button
+            onClick={copyToClipboard}
+            className="absolute top-2 right-2 pixel-button-small p-2 bg-gray-600 hover:bg-gray-700 text-white"
+            title="复制游戏介绍"
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+
           <div className="pixel-text prose prose-sm max-w-none">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -59,7 +125,16 @@ export function PixelDialogPanel({
       )}
 
       {gameStarted && messages.length > 0 && (
-        <div className="pixel-panel bg-white p-6">
+        <div className="pixel-panel bg-white p-6 relative">
+          {/* 复制按钮 */}
+          <button
+            onClick={copyToClipboard}
+            className="absolute top-2 right-2 pixel-button-small p-2 bg-gray-600 hover:bg-gray-700 text-white"
+            title="复制对话记录"
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+
           <div className="mb-2">
             <span className="pixel-text text-xs font-bold bg-black text-white px-2 py-1">
               SYSTEM
@@ -199,6 +274,23 @@ export function PixelDialogPanel({
       )}
 
       <div ref={messagesEndRef} />
+
+      <style jsx>{`
+        .pixel-button-small {
+          font-family: "Courier New", monospace;
+          border: 2px solid #fff;
+          image-rendering: pixelated;
+          transition: all 0.1s;
+        }
+
+        .pixel-button-small:active {
+          transform: translate(1px, 1px);
+        }
+
+        .pixel-button-small:hover {
+          box-shadow: 2px 2px 0 0 rgba(0,0,0,0.3);
+        }
+      `}</style>
     </div>
   );
 }

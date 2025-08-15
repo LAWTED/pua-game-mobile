@@ -33,7 +33,14 @@ export default function PuaGameMobile() {
   // Auto mode configuration
   const isAutoMode = process.env.NEXT_PUBLIC_AUTO_MODE === 'true';
   const [autoLog, setAutoLog] = useState<string[]>([]);
-  const [autoChoiceTimer, setAutoChoiceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [currentRound, setCurrentRound] = useState<{
+    aiResponse?: string;
+    choices?: string[];
+    userChoice?: string;
+    diceResult?: number;
+    statsChanges?: string;
+    timestamp: number;
+  }>({ timestamp: Date.now() });
 
   // 交互状态管理
   const [interactionMode, setInteractionMode] =
@@ -66,53 +73,137 @@ export default function PuaGameMobile() {
   const lastStatsTimeRef = useRef<number | null>(null);
 
   // Auto mode functions
-  const addToAutoLog = (entry: string) => {
-    if (isAutoMode) {
-      const timestamp = new Date().toLocaleString('zh-CN');
-      const logEntry = `[${timestamp}] ${entry}`;
-      setAutoLog(prev => [...prev, logEntry]);
+  const addRoundToLog = (roundData?: typeof currentRound) => {
+    if (!isAutoMode) return;
+    
+    // 使用传入的数据或当前状态
+    const dataToLog = roundData || currentRound;
+    
+    // 检查是否有实际内容需要记录
+    if (!dataToLog.aiResponse && !dataToLog.choices && dataToLog.diceResult === undefined && !dataToLog.statsChanges) {
+      console.log('跳过空回合记录');
+      return;
     }
+    
+    const timestamp = new Date().toLocaleString('zh-CN');
+    const roundNumber = autoLog.length + 1;
+    let roundLog = `## 回合 ${roundNumber} - ${timestamp}\n\n`;
+    
+    if (dataToLog.aiResponse) {
+      roundLog += `### AI响应\n${dataToLog.aiResponse}\n\n`;
+    }
+    
+    if (dataToLog.choices && dataToLog.choices.length > 0) {
+      roundLog += `### 可选择项\n${dataToLog.choices.map((choice, i) => `${i + 1}. ${choice}`).join('\n')}\n\n`;
+      
+      if (dataToLog.userChoice) {
+        const choiceIndex = dataToLog.choices.indexOf(dataToLog.userChoice) + 1;
+        roundLog += `### 玩家选择\n**选择 ${choiceIndex}**: ${dataToLog.userChoice}\n\n`;
+      }
+    }
+    
+    if (dataToLog.diceResult !== undefined) {
+      roundLog += `### 骰子结果\n🎲 ${dataToLog.diceResult}/20\n\n`;
+    }
+    
+    if (dataToLog.statsChanges) {
+      roundLog += `### 数值变化\n${dataToLog.statsChanges}\n\n`;
+    }
+    
+    roundLog += "---\n";
+    
+    console.log('记录回合:', roundNumber, '内容长度:', roundLog.length);
+    setAutoLog(prev => [...prev, roundLog]);
+    setCurrentRound({ timestamp: Date.now() });
   };
 
   const saveAutoLogToFile = async () => {
-    if (!isAutoMode || autoLog.length === 0) return;
+    console.log('下载函数被调用，isAutoMode:', isAutoMode, 'gameStarted:', gameStarted, 'autoLog长度:', autoLog.length);
+    if (!isAutoMode) {
+      console.log('不是auto模式，退出下载');
+      return;
+    }
     
-    const logContent = autoLog.join('\n\n');
-    const markdown = `# 游戏自动运行日志\n\n生成时间: ${new Date().toLocaleString('zh-CN')}\n\n---\n\n${logContent}`;
+    let content = '';
+    if (autoLog.length === 0) {
+      content = '# 🎭 学术江湖生存记 - 自动运行日志\n\n**游戏模式**: 自动模式\n**生成时间**: ' + new Date().toLocaleString('zh-CN') + '\n**状态**: 游戏尚未开始或无记录\n\n暂无游戏记录。';
+    } else {
+      const logContent = autoLog.join('\n');
+      content = `# 🎭 学术江湖生存记 - 自动运行日志\n\n**游戏模式**: 自动模式\n**生成时间**: ${new Date().toLocaleString('zh-CN')}\n**总回合数**: ${autoLog.length}\n\n${logContent}`;
+    }
     
-    // Create download link
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pua-game-auto-${Date.now()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      // Create download link with better browser compatibility
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      
+      // Set attributes
+      a.href = url;
+      a.download = `pua-game-auto-${Date.now()}.md`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      
+      // Ensure element is visible for some browsers
+      a.style.position = 'fixed';
+      a.style.top = '0';
+      a.style.left = '0';
+      a.style.opacity = '0';
+      a.style.pointerEvents = 'none';
+      
+      // Add to DOM, click, then remove
+      document.body.appendChild(a);
+      
+      // Force focus and click with user event simulation
+      a.focus();
+      
+      // Create a mouse event to simulate user interaction
+      const clickEvent = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+      
+      a.dispatchEvent(clickEvent);
+      
+      // Clean up after a small delay
+      setTimeout(() => {
+        if (document.body.contains(a)) {
+          document.body.removeChild(a);
+        }
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      console.log('下载触发成功，文件大小:', content.length, '字符');
+      
+      // Additional fallback: show modal with content if download fails
+      setTimeout(() => {
+        console.log('如果下载没有开始，请检查浏览器下载设置');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('下载失败:', error);
+      
+      // Fallback: copy to clipboard
+      try {
+        navigator.clipboard.writeText(content);
+        alert('下载失败，但内容已复制到剪贴板');
+      } catch (clipboardError) {
+        console.error('剪贴板复制也失败:', clipboardError);
+        
+        // Last resort: show content in new window
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(`<pre>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`);
+          newWindow.document.title = 'PUA游戏自动日志';
+        } else {
+          alert('下载失败，请允许弹窗或检查浏览器设置');
+        }
+      }
+    }
   };
 
-  const autoSelectChoice = () => {
-    if (!isAutoMode || interactionMode !== 'choices' || currentChoices.length === 0) return;
-    
-    // 随机选择一个选项
-    const randomIndex = Math.floor(Math.random() * currentChoices.length);
-    const selectedChoice = currentChoices[randomIndex];
-    
-    addToAutoLog(`自动选择: ${selectedChoice.text} (选项 ${randomIndex + 1}/${currentChoices.length})`);
-    
-    // 直接执行选择，不再有额外延迟
-    handleSelectChoice(selectedChoice.text, selectedChoice.toolCallId);
-  };
 
-  const autoRollDice = () => {
-    if (!isAutoMode || interactionMode !== 'dice') return;
-    
-    addToAutoLog('自动投骰子');
-    
-    // 直接执行投骰子，不再有额外延迟
-    handleDiceClick();
-  };
 
   const systemPrompt = `
 # 《学术江湖生存记》- 黑色幽默版研究生生活体验
@@ -318,6 +409,18 @@ export default function PuaGameMobile() {
     maxSteps: 100,
     onFinish: (message, options) => {
       console.log("onFinish", message, options);
+      
+      if (isAutoMode && message.content && typeof message.content === 'string') {
+        // 记录完整的AI响应到当前回合
+        setCurrentRound(prev => ({
+          ...prev,
+          aiResponse: message.content as string
+        }));
+        
+        // 对于没有工具调用的纯对话，也记录到日志
+        // 延迟一点时间确保状态更新完成
+        setTimeout(() => addRoundToLog(), 200);
+      }
     },
     onToolCall: async ({ toolCall }) => {
       console.log("onToolCall", toolCall);
@@ -326,24 +429,51 @@ export default function PuaGameMobile() {
         const args = toolCall.args as unknown as RenderChoicesArgs;
         const choices = args.choices || [];
 
-        addToAutoLog(`显示选择项: ${choices.map((choice, i) => `${i+1}. ${choice}`).join(' | ')}`);
-
-        setCurrentChoices(
-          choices.map((choice) => ({
-            text: choice,
-            toolCallId: toolCall.toolCallId,
-          }))
-        );
-        setInteractionMode("choices");
-        return null;
+        if (isAutoMode && choices.length > 0) {
+          // Auto模式：直接返回随机选择的结果
+          const randomIndex = Math.floor(Math.random() * choices.length);
+          const selectedChoice = choices[randomIndex];
+          
+          // 更新当前回合信息
+          setCurrentRound(prev => ({
+            ...prev,
+            choices,
+            userChoice: selectedChoice
+          }));
+          
+          return selectedChoice;
+        } else {
+          // 手动模式：设置UI状态等待用户选择
+          setCurrentChoices(
+            choices.map((choice) => ({
+              text: choice,
+              toolCallId: toolCall.toolCallId,
+            }))
+          );
+          setInteractionMode("choices");
+          return null;
+        }
       }
 
       if (toolCall.toolName === "rollADice") {
-        addToAutoLog('需要投掷骰子进行判定');
-        setDiceToolCallId(toolCall.toolCallId);
-        setInteractionMode("dice");
-        setDiceValue(null);
-        return null;
+        if (isAutoMode) {
+          // Auto模式：直接返回随机骰子结果
+          const diceResult = Math.floor(Math.random() * 20) + 1;
+          
+          // 更新当前回合信息
+          setCurrentRound(prev => ({
+            ...prev,
+            diceResult
+          }));
+          
+          return diceResult.toString();
+        } else {
+          // 手动模式：设置UI状态等待用户投掷
+          setDiceToolCallId(toolCall.toolCallId);
+          setInteractionMode("dice");
+          setDiceValue(null);
+          return null;
+        }
       }
 
       if (toolCall.toolName === "updateStats" && toolCall.args) {
@@ -362,11 +492,12 @@ export default function PuaGameMobile() {
         };
 
         let newStudentStats = { ...currentStats.student };
+        let statsChangeLog = '';
 
         if (statsHistory.length === 0) {
           // 初始化设置
           newStudentStats = { ...studentDelta };
-          addToAutoLog(`初始化数值 - 学生: 🧠${newStudentStats.mentalResilience} 📈${newStudentStats.academicProgress} 🔍${newStudentStats.awarenessLevel}`);
+          statsChangeLog = `初始化数值 - 🧠${newStudentStats.mentalResilience} 📈${newStudentStats.academicProgress} 🔍${newStudentStats.awarenessLevel}`;
         } else {
           // 增量更新
           (
@@ -385,7 +516,18 @@ export default function PuaGameMobile() {
             })
             .join(' ');
           
-          addToAutoLog(`数值变化 - 学生: ${studentChanges || '无变化'} | 说明: ${desc}`);
+          statsChangeLog = `${studentChanges || '无变化'} | ${desc}`;
+        }
+        
+        // 更新当前回合信息
+        if (isAutoMode) {
+          setCurrentRound(prev => ({
+            ...prev,
+            statsChanges: statsChangeLog
+          }));
+          
+          // 数值更新通常是回合的结束，记录日志
+          setTimeout(() => addRoundToLog(), 100);
         }
         
         setCurrentStats({
@@ -444,40 +586,21 @@ export default function PuaGameMobile() {
     }
   }, [messages, gameStarted]);
 
-  // Auto mode: auto-handle interactions
+  // Auto mode: dice auto-handling (choices are handled in onToolCall)
   useEffect(() => {
-    if (!isAutoMode) return;
+    if (!isAutoMode || interactionMode !== 'dice') return;
     
-    if (interactionMode === 'choices' && currentChoices.length > 0) {
-      const timer = setTimeout(autoSelectChoice, 3000); // 3秒后自动选择
-      setAutoChoiceTimer(timer);
-      return () => clearTimeout(timer);
-    } else if (interactionMode === 'dice') {
-      const timer = setTimeout(autoRollDice, 2000); // 2秒后自动投骰子
-      return () => clearTimeout(timer);
-    }
-    
-    if (autoChoiceTimer) {
-      clearTimeout(autoChoiceTimer);
-      setAutoChoiceTimer(null);
-    }
-  }, [isAutoMode, interactionMode, currentChoices]);
-
-  // Auto mode: log messages and detect game end
-  useEffect(() => {
-    if (!isAutoMode || !gameStarted) return;
-    
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'assistant' && typeof lastMessage.content === 'string') {
-      const content = lastMessage.content;
-      
-      // 记录场景和对话
-      if (content.includes('【第') || content.includes('第') || content.includes('day')) {
-        addToAutoLog(`场景描述: ${content.substring(0, 200)}${content.length > 200 ? '...' : ''}`);
+    console.log(`[Auto Mode] 检测到骰子模式，将在500ms后自动投掷`);
+    const timer = setTimeout(() => {
+      if (interactionMode === 'dice') {
+        console.log(`[Auto Mode] 执行自动投掷`);
+        handleDiceClick(); // Use existing dice click handler
       }
-      
-    }
-  }, [messages, isAutoMode, gameStarted]);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [isAutoMode, interactionMode]);
+
 
   // 监听 statsHistory 变化，高亮数值面板
   useEffect(() => {
@@ -501,7 +624,6 @@ export default function PuaGameMobile() {
 
   // 选择一个选项
   const handleSelectChoice = (choice: string, toolCallId: string) => {
-    addToAutoLog(`玩家选择: ${choice}`);
     setInteractionMode("idle");
     setCurrentChoices([]);
     addToolResult({
@@ -518,7 +640,6 @@ export default function PuaGameMobile() {
     setTimeout(() => {
       setDiceValue(randomResult);
       setIsManualRolling(false);
-      addToAutoLog(`骰子结果: ${randomResult}/20`);
       setTimeout(() => {
         addToolResult({
           toolCallId: diceToolCallId,
