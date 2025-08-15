@@ -36,26 +36,17 @@ interface SlidingInteractionPanelProps {
   // 数值面板相关
   statsHistory: {
     studentStats: {
-      psi: number;
-      progress: number;
-      evidence: number;
-      network: number;
-      money: number;
-    };
-    professorStats: {
-      authority: number;
-      risk: number;
-      anxiety: number;
+      mentalResilience: number;  // 心理韧性 🧠
+      academicProgress: number;  // 学术进展 📈
+      awarenessLevel: number;    // 觉察水平 🔍
     };
     desc: string;
     studentDesc: string;
-    professorDesc: string;
     time: number;
   }[];
   statsHighlight: boolean;
   currentStats: {
-    student: { psi: number; progress: number; evidence: number; network: number; money: number };
-    professor: { authority: number; risk: number; anxiety: number };
+    student: { mentalResilience: number; academicProgress: number; awarenessLevel: number };
   };
 }
 

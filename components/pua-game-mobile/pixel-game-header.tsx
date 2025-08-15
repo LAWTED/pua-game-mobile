@@ -1,14 +1,16 @@
 import React from "react";
-import { Info } from "lucide-react";
+import { Info, Zap } from "lucide-react";
 
 interface PixelGameHeaderProps {
   gameDay: number;
   onShowInstructions: () => void;
+  isAutoMode?: boolean;
 }
 
 export function PixelGameHeader({
   gameDay,
-  onShowInstructions
+  onShowInstructions,
+  isAutoMode = false
 }: PixelGameHeaderProps) {
   return (
     <div className="pixel-header bg-black text-white p-4">
@@ -18,6 +20,12 @@ export function PixelGameHeader({
           <div className="pixel-text text-sm">
             Day: {gameDay}
           </div>
+          {isAutoMode && (
+            <div className="flex items-center gap-1 pixel-button-small p-1 bg-green-600">
+              <Zap size={12} />
+              <span className="text-xs">AUTO</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

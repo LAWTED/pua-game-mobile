@@ -39,29 +39,19 @@ export async function POST(request: NextRequest) {
         },
         updateStats: {
           description:
-            "更新学生和教授的数值。每当数值发生变化时（包括游戏开始初始化），都应调用此工具，并提供变化说明。",
+            "更新学生的核心生存数值。每当数值发生变化时（包括游戏开始初始化），都应调用此工具，并提供变化说明。",
           parameters: z.object({
             studentDelta: z
               .object({
-                psi: z.number(),
-                progress: z.number(),
-                evidence: z.number(),
-                network: z.number(),
-                money: z.number(),
+                mentalResilience: z.number().describe("心理韧性变化（0-100）"),
+                academicProgress: z.number().describe("学术进展变化（0-100）"),
+                awarenessLevel: z.number().describe("觉察水平变化（0-100）"),
               })
               .describe(
-                "学生数值变化（psi、progress、evidence、network、money）"
+                "学生数值变化（mentalResilience、academicProgress、awarenessLevel）"
               ),
-            professorDelta: z
-              .object({
-                authority: z.number(),
-                risk: z.number(),
-                anxiety: z.number(),
-              })
-              .describe("教授数值变化（authority、risk、anxiety）"),
             desc: z.string().describe("整体数值变化的简要描述"),
             studentDesc: z.string().describe("学生数值变化的说明"),
-            professorDesc: z.string().describe("教授数值变化的说明"),
           }),
         },
       },

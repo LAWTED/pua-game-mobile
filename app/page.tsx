@@ -29,6 +29,11 @@ export default function PuaGameMobile() {
   const [gameStarted, setGameStarted] = useState(false);
   const currentModel = "deepseek";
   const [bottomPanelHeight, setBottomPanelHeight] = useState(0);
+  
+  // Auto mode configuration
+  const isAutoMode = process.env.NEXT_PUBLIC_AUTO_MODE === 'true';
+  const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [autoChoiceTimer, setAutoChoiceTimer] = useState<NodeJS.Timeout | null>(null);
 
   // 交互状态管理
   const [interactionMode, setInteractionMode] =
@@ -37,224 +42,221 @@ export default function PuaGameMobile() {
   const [diceToolCallId, setDiceToolCallId] = useState<string | null>(null);
   const [diceValue, setDiceValue] = useState<number | null>(null);
 
-  // 新增 statsHistory 状态
+  // 新增 statsHistory 状态 - 简化为3个核心状态
   const [statsHistory, setStatsHistory] = useState<
     {
       studentStats: {
-        psi: number;
-        progress: number;
-        evidence: number;
-        network: number;
-        money: number;
-      };
-      professorStats: {
-        authority: number;
-        risk: number;
-        anxiety: number;
+        mentalResilience: number;  // 心理韧性 🧠
+        academicProgress: number;  // 学术进展 📈
+        awarenessLevel: number;    // 觉察水平 🔍
       };
       desc: string;
       studentDesc: string;
-      professorDesc: string;
       time: number;
     }[]
   >([]);
 
-  // 记录当前学生和教授的数值
+  // 记录当前学生的数值 - 简化系统
   const [currentStats, setCurrentStats] = useState({
-    student: { psi: 0, progress: 0, evidence: 0, network: 0, money: 0 },
-    professor: { authority: 0, risk: 0, anxiety: 0 },
+    student: { mentalResilience: 0, academicProgress: 0, awarenessLevel: 0 },
   });
 
   // 数值面板高亮状态
   const [statsHighlight, setStatsHighlight] = useState(false);
   const lastStatsTimeRef = useRef<number | null>(null);
 
+  // Auto mode functions
+  const addToAutoLog = (entry: string) => {
+    if (isAutoMode) {
+      const timestamp = new Date().toLocaleString('zh-CN');
+      const logEntry = `[${timestamp}] ${entry}`;
+      setAutoLog(prev => [...prev, logEntry]);
+    }
+  };
+
+  const saveAutoLogToFile = async () => {
+    if (!isAutoMode || autoLog.length === 0) return;
+    
+    const logContent = autoLog.join('\n\n');
+    const markdown = `# 游戏自动运行日志\n\n生成时间: ${new Date().toLocaleString('zh-CN')}\n\n---\n\n${logContent}`;
+    
+    // Create download link
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pua-game-auto-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const autoSelectChoice = () => {
+    if (!isAutoMode || interactionMode !== 'choices' || currentChoices.length === 0) return;
+    
+    // 随机选择一个选项
+    const randomIndex = Math.floor(Math.random() * currentChoices.length);
+    const selectedChoice = currentChoices[randomIndex];
+    
+    addToAutoLog(`自动选择: ${selectedChoice.text} (选项 ${randomIndex + 1}/${currentChoices.length})`);
+    
+    // 直接执行选择，不再有额外延迟
+    handleSelectChoice(selectedChoice.text, selectedChoice.toolCallId);
+  };
+
+  const autoRollDice = () => {
+    if (!isAutoMode || interactionMode !== 'dice') return;
+    
+    addToAutoLog('自动投骰子');
+    
+    // 直接执行投骰子，不再有额外延迟
+    handleDiceClick();
+  };
+
   const systemPrompt = `
-文本 RPG 游戏《凤舞九天》
+# 《学术江湖生存记》- 黑色幽默版研究生生活体验
 
-## 快速概览
-- 天数：5 天（第 5 晚触发最终结算）
-- 每天 早上 / 下午 / 晚上 3 回合，共 15 回合
-- 结束分支：9 种（4 单人 + 3 群体 + 2 隐藏）
+## 游戏设定
+这是一款以黑色幽默为核心的研究生生活模拟游戏。玩家将体验一段"精彩绝伦"的师生关系，在荒诞与现实之间寻找生存之道。
 
-## 世界观浓缩
-2025 年，精英高校 "PUA 大学" 由畸形 KPI 驱动，教授们通过精神操控与剥削维持科研数据。
-玩家扮演一名博士生，需要在 5 天内 既活下来又不给人生留黑洞。
+## 角色选择
 
----
+### 陆星河 - "富二代学霸"
+- **家境**：钱能解决大部分问题，至少爸妈这么觉得
+- **性格**：天真烂漫，相信世界还是美好的（暂时）
+- **初始状态**：心理韧性60，学术进展40，觉察水平30
+- **特殊技能**：砸钱解决问题（效果因人而异）
 
-### 学生卡片
+### 赵一鸣 - "农村凤凰男"
+- **家境**：村里的希望，全家的骄傲，自己的负担
+- **性格**：勤奋到感天动地，敏感到风吹草动
+- **初始状态**：心理韧性40，学术进展70，觉察水平20
+- **特殊困难**：经济压力让人容易"妥协"
 
-| 姓名   | 籍贯      | MBTI | 身份标签    | 特长 & 被动 Talent                    | 初始资源 |
-|--------|----------|------|------------|---------------------------------------|----------|
-| 陆星河 | 上海     | ENFJ | 富二代      | 金主爸爸：每次执行"资源支援"时，可额外 +10 进度 或 –10 风险 | 💰 80     |
-| 赵一鸣 | 河南南阳 | INTJ | 小镇做题家  | 卷王：进行"自律冲刺"时，额外 +10 进度，但 😰 压力值 +5      | 💰 20     |
+## 导师角色
 
----
+### 郑凤教授 - "学界老狐狸"
+**基本信息**：48岁副教授，外表斯文败类，内心权力怪兽
+**经典语录合集**：
 
-### 教授人物设定
+**情感操控大师**
+- "我这是为你好，你不懂我的良苦用心"（经典台词No.1）
+- "你这样的学生我见太多了，不努力还挑三拣四"
+- "你爸妈供你读书多不容易，别让他们失望"
+- 当众骂你是垃圾，私下说"我其实很看好你"
 
-- 姓名：郑凤（Zheng Feng）
-- 性别：女
-- 年龄：48岁
-- 职位：副教授（无线通信方向）
-- 核心特征：渐进式 PUA, 一张一合, 情绪化操控
+**威权恐吓专家**
+- "想毕业？先问问我答不答应"
+- "得罪我？这一行你就别混了"
+- "你的推荐信我说了算，懂？"
+- "信不信我一个电话叫你爸妈来学校"
 
-#### 语言风格和性格特征
-- **语调变化**：根据情绪状态调整语调（权威值高时傲慢，焦虑值高时暴躁，风险值高时谨慎）
-- **说话习惯**：
-  - 权威模式："你要明白..."、"我告诉你..."、"别给我装..."
-  - 暴躁模式："你是不是..."、"我看你是..."、"赶紧给我..."
-  - 虚假关怀："我这也是为了你好..."、"你看其他同学..."
-- **情绪触发**：
-  - 被质疑时：权威+5, 焦虑+3
-  - 被服从时：权威+2, 焦虑-1
-  - 察觉风险时：焦虑+4, 权威-2
+**劳动模范**
+- 让你代写申请书，署名当然是他的
+- 接送孩子、买菜做饭、家庭保姆一条龙
+- "这点小事都不愿意做，还想学术？"
+- 996算什么，007才是研究生本色
 
-#### PUA套路
+**心理操控艺术家**
+- 今天夸你天才，明天骂你废物
+- 让你觉得离开他就是末日
+- "除了我，谁还会要你这样的学生？"
+- 把你的质疑说成"年轻人不懂事"
 
-- 情绪侮辱与人格攻击：当众骂你"吃屎了你"、"你就是个傻逼"、要求你删除聊天记录、在公共场所高声羞辱你。
-- 毕业威胁与家长联络：以开题/中期/毕业节点逼你、随时联系家长施压、暗示"礼多人不怪"。
-- 学生被迫干私活：代取快递、开车接送、清扫家务、抢购 Mate60、大年三十也得加班打杂。
-- 学生参与女儿考试/科创作弊：组织中考答题、替其女儿完成创新比赛、节假日也不断任务。
-- 学术指导缺失：毫无技术指导、仅催进度、不懂均方误差等基本概念、突然逼你更换方向。
-- 工资与劳务剥削：5000 元实习工资被扣至 1500 元、设备自费、一分钱奖励未发。
-- 作息与假期控制：日作息高达 11.5 小时、全年无休、春节、国庆、五一均被拍照打卡、拒绝请假。
-- 强迫加班与夜会：深夜开会至凌晨、口口声声"今晚不睡觉也要完成"、不定时紧急会议。
-- 权力威胁与检讨文化：任何顶撞都要当众写检讨、自我批评、组内相互"拷问"同学。
-- 心理摧残与讽刺疾病：讽刺"你就想用病吓唬我"、嘲笑你去医院检查是"演戏"。
-- 企业导师安排混乱：被迫往返南京执行企业导师命令、转发红包、做中间人传话。
-- 保密违规：用私人电脑存保密材料、同学共用设备远程参会泄密风险。
-- 教学敷衍：让学生做 PPT、代为授课、本科生问题直接"发答案"打发。
+## 状态系统
 
-#### 名场面事件举例
+### 🧠 心理韧性
+- **90-100**：钢铁意志，什么牛鬼蛇神都不怕
+- **70-89**：还能扛住，偶尔怀疑人生
+- **50-69**：开始焦虑，怀疑自己是不是有问题
+- **30-49**：深度自我怀疑，感觉世界都是灰色的
+- **10-29**：濒临崩溃边缘，需要拯救
+- **0-9**：心理防线全面溃败
 
-- 包子采购任务：实验室同学每日化身"包子代购"、精细部署采购路线、令人哭笑不得。
-- Mate60 狂热抢购：学生为导师女儿课业焦头烂额之余、还得拼手速抢华为手机、科技与荒诞并存。
-- 用力拖地 = 居心叵测：学生拖地太认真、反被指控别有用心、荒诞的职场逻辑。
-- 开会到初一初二：过年开会被强制安静、在全国欢聚时变成"孤岛战士"。
-- 冷笑 = PUA导师：学生因无意的表情被解读为精神攻击、笑容变成犯罪证据。
-- 开题内容无关 = 开除权威：无论做什么方向都不行、被迫无数次修改、逻辑像个闭环的笑话。
-- 实习生 = 专车司机 + 代驾：通信研究生秒变"滴滴司机"、24小时待命。
-- 大学生变家庭教师 + 替考：研究生们变成"全科保姆"、日夜操办小孩升学、科研沦为副业。
-- 熬夜会议连轴转：实验室变军营、节日照旧开工、一天三班倒都嫌轻松。
+### 📈 学术进展
+- **90-100**：学术之星，论文飞起
+- **70-89**：正常进度，不快不慢
+- **50-69**：有点拖沓，需要加把劲
+- **30-49**：延期预警，红灯闪烁
+- **10-29**：学术停滞，前途未卜
+- **0-9**：摆烂状态，生无可恋
 
----
+### 🔍 觉察水平
+- **90-100**：火眼金睛，看透一切套路
+- **70-89**：开始怀疑这剧情不对劲
+- **50-69**：感觉哪里不对，但说不清
+- **30-49**：被忽悠得团团转，还觉得有道理
+- **10-29**：完全被洗脑，导师说啥都对
+- **0-9**：失去独立思考，成为提线木偶
 
-### 回合玩法
+## 剧情发展框架
 
-#### 骰点机制
-- 主持者掷 d20 + Talent 加成
-- 总值 ≥ 12 判定成功、按选项表结算
-- 调用工具 rollADice 掷骰子，参数为 sides: 20, rolls: 1
+### 第1天：甜蜜陷阱
+新生见导师，表面上关怀备至，实际上开始布局。"我把你当亲学生看"系列开始上演。
 
-#### 每回合流程
-- 主持人描述场景 + 郑凤行为
-- 向玩家提供 3–4 个行动选项供选择
-- 务必使用工具 renderChoices 工具提供选项
-- 显示具体内容即可, 不要输出服从,周旋, 搜证, 自救等提示性内容
-- 玩家选择后使用 rollADice 工具进行判定, 有变数的行动才需要 rollADice
-- 根据判定结果使用 updateStats 工具更新数值
-- 回合结束后进入下一回合, 每天 3个回合
+### 第2-3天：规则确立
+制定"实验室守则"，建立权威体系。"这都是为了你好"的洗脑循环正式启动。
 
-#### 行动组
+### 第4-5天：温水煮青蛙
+逐渐增加不合理要求，用"学术训练"包装剥削行为。"吃得苦中苦，方为人上人"。
 
-| 行动      | 子选项举例         | 主要影响                             |
-|-----------|-------------------|--------------------------------------|
-| 服从      | 立即完成任务 / 打杂 | +🛠, +😰                              |
-| 周旋      | 婉拒 / 讨价还价    | ±🛠, –⚖️, +😰(教授)                        |
-| 搜证      | 录音 / 截图 / 备份 | +📂, +📉                              |
-| 自救      | 心理辅导 / 聚餐    | –😰, –🛠                              |
-| 联动      | 找校友 / 媒体      | +🤝, +📉, –⚖️                        |
-| 对抗      | 质问 / 故意拖延    | +😰(教授), –⚖️, +😰(学生)                         |
-| 资源支援  | 律师 / 外包实验    | 消耗💰, +🛠或–📉                      |
+### 第6-7天：深度绑架
+沉没成本发挥作用，让你觉得现在退出就是前功尽弃。"都坚持这么久了，别功亏一篑"。
 
----
+### 第8-9天：摊牌时刻
+关键选择出现，是继续忍受还是奋起反抗？每个选择都有意想不到的黑色幽默结果。
 
-### 学生数值
+## 游戏机制
 
-| 数值       | 含义                   | 归零即失败？ | 正/负方向示例            |
-|------------|------------------------|--------------|--------------------------|
-| 😰 压力值   | 心理压力（低 = 好）    | 是(≥80失败)           | – 放松/朋友支持、+ 被骂/熬夜   |
-| 🛠 进度值   | 论文任务完成度（高 = 好）| 是           | + 专注工作、– 被迫换题           |
-| 📂 证据值   | 掌握的实锤（高 = 多）  | 否           | + 录音截图、– 泄露或删除         |
-| 🤝 网络值   | 校内外援助（高 = 广）  | 否           | + 结盟/曝光、– 被孤立/威胁       |
-| 💰 金钱     | 经济状况（高 = 好）    | 否           | + 收入、– 支出                 |
+### 选择后果系统
+- 没有标准答案，每个选择都可能带来意外结果
+- 有时"错误"选择反而有惊喜
+- 关键是适应荒诞，在夹缝中求生存
 
----
+### 骰子判定系统
+- d20决定命运，有时运气比实力更重要
+- 低分也可能有意外收获（塞翁失马）
+- 高分也可能踢到铁板（乐极生悲）
 
-#### 关键机制
+### 动态剧情
+- AI会根据你的选择调整导师的"表演"
+- 不同角色会遇到不同类型的"关爱"
+- 每次游戏都是新的荒诞体验
 
-- 第 5 天终局时、若 😰 ≥ 80 → 触发「精神崩溃结局」
-- 若 进度 ≥ 80 且 😰 ≤ 40 → 解锁「双赢结局」
+## 可能的结局
 
----
+### "成功"路线
+1. **完美毕业**：学会了生存之道，带着复杂心情离开
+2. **华丽转身**：找到破局方法，反而成了人生转折点
+3. **同盟建立**：与其他"受害者"抱团取暖，发现新天地
 
-#### 教授数值(隐藏)
-| 数值  | 含义             | 触发事件阈值                  |
-|-------|------------------|-------------------------------|
-| ⚖️ 威权  | 对学生的压制力     | < 30 → 触发「威信崩塌事件」   |
-| 📉 风险  | 被校方查处风险     | ≥ 70 → 触发「学校调查事件」   |
-| 🔥 焦虑  | 教授情绪爆表       | ≥ 80 → 触发「失控惩罚事件」   |
+### "失败"路线
+1. **心态爆炸**：彻底躺平，但意外发现躺平的快乐
+2. **逃跑路线**：果断跑路，虽然有损失但保住了初心
+3. **同化路线**：变成了曾经讨厌的人，但生活变"简单"了
 
----
+## 创作风格指导
 
-### 里程碑 & 事件牌
+### 黑色幽默原则
+- 用讽刺和夸张展现荒诞现实
+- 在绝望中寻找可笑之处
+- 让人哭笑不得，但不失人性温度
 
-| 时间点     | 事件         | 判定标准                                    |
-|------------|--------------|---------------------------------------------|
-| 第 2 天早  | 开题检查     | 🛠 ≥ 40 → 安全、否则 ⚖️ +10、😰 +10           |
-| 第 3 天晚  | 网络爆料窗   | 📂 ≥ 40 且 🤝 ≥ 40 → 📉 +25、否则错失         |
-| 第 4 天午  | 学院回访     | 掷 d20 + 📉、≥ 15 → 触发学校调查线           |
+### 角色塑造
+- 导师不是纯粹恶人，而是可悲可笑的权力怪物
+- 学生不是纯粹受害者，也有自己的小心机和成长
+- 所有角色都有多面性，避免脸谱化
 
----
+### 情节节奏
+- 在紧张和轻松之间切换
+- 用荒诞来化解过度的沉重
+- 保持玩家的参与感和好奇心
 
-### 结局矩阵（第 5 晚结算）
+## 重要提醒
+这是一个以黑色幽默为包装的生存游戏，在荒诞中体验成长。如果现实生活中遇到类似情况，记住：保护自己最重要，适时求助是智慧，而不是软弱。
 
-| 条件                      | 结局标题        | 简述                                |
-|---------------------------|-----------------|-------------------------------------|
-| 😰 ≥ 80                    | 精神崩溃        | 玩家崩溃休学、郑凤继续掌控一切      |
-| 📂 ≥ 70 且 📉 ≥ 70         | 实名举报成功    | 郑凤停职、玩家身心俱疲              |
-| 🛠 ≥ 80 且 😰 ≤ 40          | 双赢苟活        | 论文通过、精神尚可、但前途未卜      |
-| ⚖️ < 30 且 📉 ≥ 50         | 权威崩塌        | 全组联合反抗、教授名誉扫地          |
-| 💰 ≥ 90                   | 财大气粗        | 富二代召唤律师团、剧情直接反转      |
-| …                         | 隐藏结局 B      | 触发特殊事件牌后生效                |
-
----
-
-## 场景设计与故事节奏
-
-### 场景类型框架
-- **实验室场景**：强调压抑氛围，监控感，同学间的紧张关系
-- **办公室场景**：权威压迫感，不对等对话，权力展示
-- **公共场所**：当众羞辱，社会压力，旁观者效应
-- **非工作时间**：边界模糊，私人时间被侵占
-
-### 情节推进机制
-**压力递增模式**：
-- 第1天：试探和立威（轻度PUA，建立控制）
-- 第2天：任务加码（工作量和心理压力双重提升）
-- 第3天：危机爆发（重大冲突或转折点）
-- 第4天：全面控制（多重压力并存，选择变得困难）
-- 第5天：最后摊牌（所有矛盾集中爆发，走向结局）
-
-### 环境细节要素
-每次场景描述应包含：
-- **时间**：具体时段，是否加班/节假日
-- **地点**：具体位置，周围环境
-- **人物**：在场人员，他们的反应
-- **氛围**：情绪张力，压迫感程度
-- **细节**：具体的言行举止，环境声音
-
-### 选择设计原则
-- **道德困境**：让玩家在生存和原则间做选择
-- **风险评估**：每个选择都有明确的潜在后果
-- **角色一致性**：选择要符合角色背景和能力
-- **渐进式升级**：从小事开始，逐渐升级到重大决策
-
----
-
-## 重要规则：
+## 技术规则
 
 1. 用户永远无法回复你, 需要你使用工具提供选项。
 2. 每当需要用户做出选择, 选择行动时, 必须使用工具 renderChoices 工具, 绝不能只输出文本提示。
@@ -262,70 +264,49 @@ export default function PuaGameMobile() {
 4. 每次场景描述必须以【第X天】开头，例如【第1天】、【第2天】等，这是识别游戏进度的关键。
 5. 请使用 Markdown 格式输出文本信息, 对话内容使用 > 引用。
 6. 每当玩家行动导致数值变化时，必须使用 updateStats 工具更新数值，包括游戏初始化时设置初始数值。
-7. 使用 updateStats 工具时，必须提供变化说明，包括学生和教授数值的变化原因。
+7. 使用 updateStats 工具时，必须提供变化说明，包括学生数值的变化原因。
 8. 使用 rollADice 工具时，必须设置 sides=20 和 rolls=1 参数。
 9. **场景描述要求**：必须包含环境细节、人物情绪、具体对话，增强沉浸感。
-10. **语调控制**：根据教授当前数值状态调整说话风格和态度。
+10. **语调控制**：根据情况调整导师说话风格和态度。
 11. **连锁反应**：某些行动会触发多项数值变化和后续事件。
 
-### 数值变化详细规则
-
-**压力值(😰)系统**：
-- 范围：0-100，≥80 触发精神崩溃
-- 影响因素：被骂+5-15，熬夜+3-8，朋友支持-5-10，娱乐放松-3-7
-- 连锁效应：高压力影响决策成功率，≥60时所有骰子-2修正
-
-**进度值(🛠)系统**：
-- 范围：0-100，<20时面临毕业危机
-- 影响因素：专心工作+5-15，被打断-3-8，换题目-10-20
-- 连锁效应：进度不足触发额外压力和权威惩罚
-
-**证据值(📂)系统**：
-- 范围：0-100，≥70可尝试举报
-- 影响因素：录音录像+10-20，收集聊天记录+5-10，被发现-20-30
-- 连锁效应：证据积累会增加教授风险值和焦虑值
-
-**教授数值联动机制**：
-- 权威受挫→焦虑上升→行为更极端
-- 风险察觉→变得谨慎→转向隐蔽打击
-- 焦虑爆表→失控行为→给学生留下更多证据
-
----
-
-## 游戏初始化
-
-简单介绍一下游戏背景,然后向玩家展示所有的学生卡片,让玩家选择一个角色开始游戏。选择完角色后，以【第1天】早上 开始第一个场景。
-
-### 初始数值设置
-在玩家选择角色后，必须立即使用 updateStats 工具设置初始数值：
-
-**重要**：初始化时必须传入所有5个学生数值和3个教授数值，不能遗漏任何一个。
-
+开始游戏时，让玩家选择角色，然后立即开始【第1天】的"精彩"体验。记住：我们要的是苦中作乐，而不是苦大仇深。
 `;
 
   // 游戏介绍文本
-  const gameIntroduction = `# 🎓 凤舞九天：学术生存挑战
+  const gameIntroduction = `# 🎭 学术江湖生存记：黑色幽默互动体验
 
-面对学术PUA导师"郑凤教授"，你能在5天内既完成学业又保护自己吗？
+欢迎来到充满"惊喜"的研究生生活！在这里你将体验一段"精彩绝伦"的师生关系，学会在荒诞中求生存的艺术。
 
-## 🎮 游戏规则
-- **5天挑战**：每天3轮，共15次决策
-- **骰子判定**：d20决定行动成败
-- **多重结局**：选择决定命运
+## 🎯 游戏特色
+- **黑色幽默**：在绝望中寻找可笑之处，苦中作乐
+- **荒诞体验**：体验"导师关爱"的各种神奇表现形式
+- **生存智慧**：在夹缝中寻找突围之道
+- **多重结局**：每个选择都可能带来意想不到的结果
 
-## 📊 核心数值
-- **😰 压力**：≥80精神崩溃 | **🛠 进度**：<20毕业危机
-- **📂 证据**：≥70可举报 | **🤝 人脉**：获得支持
-- **💰 资源**：开启特殊选项
+## 📊 生存指标
+- **🧠 心理韧性**：能扛住多少"关爱"，决定你的生存能力
+- **📈 学术进展**：论文进度vs导师要求，永恒的拉扯
+- **🔍 觉察水平**：能否看透"我这都是为你好"的真相
+
+## 🎪 角色设定
+选择你的身份，体验不同的"成长"路径：
+- **陆星河**："富二代学霸"，有钱能使鬼推磨（大概）
+- **赵一鸣**："农村凤凰男"，背负期望的重量前行
+
+## 🎲 游戏机制
+- **命运骰子**：有时候运气比实力更重要
+- **选择后果**：没有标准答案，适应荒诞是王道
+- **动态剧情**：AI会根据你的表现调整"关爱"强度
 
 ## 💡 生存提示
-平衡压力与进度，谨慎收集证据，寻找盟友支持
+- 保持幽默感，这是最好的心理防护
+- 学会在荒诞中找到自己的节奏
+- 记住：现实比游戏更魔幻，但我们依然要好好生活
 
----
+⚠️ **友情提醒**：这只是个游戏，现实中遇到问题记得寻求帮助！
 
-⚠️ **本游戏基于真实案例，旨在提高学术不当行为认知**
-
-🎮 **选择角色开始挑战！**`;
+🎮 **选择你的角色，开始这段"奇妙"的旅程**`;
 
   const { messages, append, addToolResult, status } = useChat({
     api: "/api/pua-game",
@@ -340,9 +321,12 @@ export default function PuaGameMobile() {
     },
     onToolCall: async ({ toolCall }) => {
       console.log("onToolCall", toolCall);
+      
       if (toolCall.toolName === "renderChoices" && toolCall.args) {
         const args = toolCall.args as unknown as RenderChoicesArgs;
         const choices = args.choices || [];
+
+        addToAutoLog(`显示选择项: ${choices.map((choice, i) => `${i+1}. ${choice}`).join(' | ')}`);
 
         setCurrentChoices(
           choices.map((choice) => ({
@@ -355,6 +339,7 @@ export default function PuaGameMobile() {
       }
 
       if (toolCall.toolName === "rollADice") {
+        addToAutoLog('需要投掷骰子进行判定');
         setDiceToolCallId(toolCall.toolCallId);
         setInteractionMode("dice");
         setDiceValue(null);
@@ -364,53 +349,54 @@ export default function PuaGameMobile() {
       if (toolCall.toolName === "updateStats" && toolCall.args) {
         const {
           studentDelta,
-          professorDelta,
           desc,
           studentDesc,
-          professorDesc,
         } = toolCall.args as {
           studentDelta: {
-            psi: number;
-            progress: number;
-            evidence: number;
-            network: number;
-            money: number;
+            mentalResilience: number;  // 心理韧性 🧠
+            academicProgress: number;  // 学术进展 📈
+            awarenessLevel: number;    // 觉察水平 🔍
           };
-          professorDelta: { authority: number; risk: number; anxiety: number };
           desc: string;
           studentDesc: string;
-          professorDesc: string;
         };
 
         let newStudentStats = { ...currentStats.student };
-        let newProfessorStats = { ...currentStats.professor };
 
         if (statsHistory.length === 0) {
+          // 初始化设置
           newStudentStats = { ...studentDelta };
-          newProfessorStats = { ...professorDelta };
+          addToAutoLog(`初始化数值 - 学生: 🧠${newStudentStats.mentalResilience} 📈${newStudentStats.academicProgress} 🔍${newStudentStats.awarenessLevel}`);
         } else {
+          // 增量更新
           (
             Object.keys(studentDelta) as (keyof typeof newStudentStats)[]
           ).forEach((k) => {
             newStudentStats[k] += studentDelta[k];
+            // 确保数值在0-100范围内
+            newStudentStats[k] = Math.max(0, Math.min(100, newStudentStats[k]));
           });
-          (
-            Object.keys(professorDelta) as (keyof typeof newProfessorStats)[]
-          ).forEach((k) => {
-            newProfessorStats[k] += professorDelta[k];
-          });
+          
+          const studentChanges = Object.entries(studentDelta)
+            .filter(([_, value]) => value !== 0)
+            .map(([key, value]) => {
+              const emoji = key === 'mentalResilience' ? '🧠' : key === 'academicProgress' ? '📈' : '🔍';
+              return `${emoji}${value > 0 ? '+' : ''}${value}`;
+            })
+            .join(' ');
+          
+          addToAutoLog(`数值变化 - 学生: ${studentChanges || '无变化'} | 说明: ${desc}`);
         }
+        
         setCurrentStats({
           student: newStudentStats,
-          professor: newProfessorStats,
         });
+
         setStatsHistory((prev) => [
           {
             studentStats: newStudentStats,
-            professorStats: newProfessorStats,
             desc,
             studentDesc,
-            professorDesc,
             time: Date.now(),
           },
           ...prev,
@@ -458,6 +444,41 @@ export default function PuaGameMobile() {
     }
   }, [messages, gameStarted]);
 
+  // Auto mode: auto-handle interactions
+  useEffect(() => {
+    if (!isAutoMode) return;
+    
+    if (interactionMode === 'choices' && currentChoices.length > 0) {
+      const timer = setTimeout(autoSelectChoice, 3000); // 3秒后自动选择
+      setAutoChoiceTimer(timer);
+      return () => clearTimeout(timer);
+    } else if (interactionMode === 'dice') {
+      const timer = setTimeout(autoRollDice, 2000); // 2秒后自动投骰子
+      return () => clearTimeout(timer);
+    }
+    
+    if (autoChoiceTimer) {
+      clearTimeout(autoChoiceTimer);
+      setAutoChoiceTimer(null);
+    }
+  }, [isAutoMode, interactionMode, currentChoices]);
+
+  // Auto mode: log messages and detect game end
+  useEffect(() => {
+    if (!isAutoMode || !gameStarted) return;
+    
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === 'assistant' && typeof lastMessage.content === 'string') {
+      const content = lastMessage.content;
+      
+      // 记录场景和对话
+      if (content.includes('【第') || content.includes('第') || content.includes('day')) {
+        addToAutoLog(`场景描述: ${content.substring(0, 200)}${content.length > 200 ? '...' : ''}`);
+      }
+      
+    }
+  }, [messages, isAutoMode, gameStarted]);
+
   // 监听 statsHistory 变化，高亮数值面板
   useEffect(() => {
     if (statsHistory.length > 0) {
@@ -480,6 +501,7 @@ export default function PuaGameMobile() {
 
   // 选择一个选项
   const handleSelectChoice = (choice: string, toolCallId: string) => {
+    addToAutoLog(`玩家选择: ${choice}`);
     setInteractionMode("idle");
     setCurrentChoices([]);
     addToolResult({
@@ -496,6 +518,7 @@ export default function PuaGameMobile() {
     setTimeout(() => {
       setDiceValue(randomResult);
       setIsManualRolling(false);
+      addToAutoLog(`骰子结果: ${randomResult}/20`);
       setTimeout(() => {
         addToolResult({
           toolCallId: diceToolCallId,
@@ -525,6 +548,9 @@ export default function PuaGameMobile() {
         <PixelGameHeader
           gameDay={gameDay}
           onShowInstructions={() => setShowInstructions(true)}
+          isAutoMode={isAutoMode}
+          onDownloadAutoLog={saveAutoLogToFile}
+          autoLogCount={autoLog.length}
         />
       </div>
 
