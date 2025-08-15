@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:debug": "NEXT_PUBLIC_DEBUG_MODE=true next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
