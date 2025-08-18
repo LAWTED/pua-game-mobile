@@ -174,7 +174,7 @@ export function SlidingInteractionPanel({
               onClick={() => handleViewChange("interaction")}
               className={`w-2 h-2 rounded-full transition-colors ${
                 view === "interaction" ? "bg-blue-500" : "bg-gray-300"
-              } ${interactionMode !== "idle" ? "animate-pulse" : ""}`}
+              }`}
               aria-label="交互面板"
             />
           </div>

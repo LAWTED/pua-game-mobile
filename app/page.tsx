@@ -812,8 +812,8 @@ export default function PuaGameMobile() {
 
   return (
     <div className="min-h-screen pixel-bg flex flex-col">
-      {/* 游戏头部 - 固定在顶部 */}
-      <div className="sticky top-0 z-40 bg-gray-100">
+      {/* 游戏头部 */}
+      <div className="bg-gray-100">
         <PixelGameHeader
           gameDay={gameDay}
           onShowInstructions={() => setShowInstructions(true)}

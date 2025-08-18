@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Message } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,8 +18,8 @@ export function PixelDialogPanel({
   gameStarted,
   gameIntroduction
 }: PixelDialogPanelProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -282,7 +282,6 @@ export function PixelDialogPanel({
       )}
 
 
-      <div ref={messagesEndRef} />
 
       <style jsx>{`
         .pixel-button-small {
@@ -331,7 +330,11 @@ export function PixelDialogPanel({
           border-radius: 4px;
           padding: 8px 12px;
         }
+
       `}</style>
+
+      {/* 滚动锚点 */}
+      <div ref={messagesEndRef} />
     </div>
   );
 }
