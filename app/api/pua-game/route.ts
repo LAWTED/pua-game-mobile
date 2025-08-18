@@ -20,7 +20,22 @@ export async function POST(request: NextRequest) {
 
     const result = await streamText({
       model: selectedModel,
-      system: systemPrompt + "\n\n重要：每次开始回应前，先简短说明你正在做什么（比如'analyzing situation', 'plotting response', 'calculating odds'等），让玩家知道郑教授的思考状态。",
+      system: systemPrompt + `
+
+**AI执行检查清单（每次回应前必须检查）**：
+1. ✓ 当前是游戏第几天？今天已经进行了几个回合？
+2. ✓ 如果今天回合数≥3，是否需要调用setGameDay推进到下一天？
+3. ✓ 如果有数值变化，是否必须调用updateStats工具？（严禁仅在文本中描述）
+4. ✓ 如果需要玩家选择，是否必须调用renderChoices工具？
+5. ✓ 回应结束后，玩家是否有明确的下一步行动？
+
+**强制执行规则**：
+- 任何数值变化都必须调用updateStats工具，在文本中写'数值更新'是错误的
+- 任何天数推进都必须调用setGameDay工具，在文本中说'第X天'是错误的  
+- 每天最多3-4个回合，超过后必须推进到下一天
+- 第9天结束后必须调用endGame工具
+
+重要：每次开始回应前，先简短说明你正在做什么（比如'analyzing situation', 'plotting response', 'calculating odds'等），让玩家知道郑教授的思考状态。`,
       messages: messages,
       tools: {
         renderChoices: {
@@ -39,7 +54,7 @@ export async function POST(request: NextRequest) {
         },
         updateStats: {
           description:
-            "更新学生的核心生存数值。每当数值发生变化时（包括游戏开始初始化），都应调用此工具，并提供变化说明。",
+            "【强制工具】更新学生的核心生存数值。任何数值变化都必须调用此工具，严禁在文本中描述数值变化。包括游戏开始初始化、选择后果、事件影响等所有情况。不调用此工具而仅在文本中描述数值是严重错误。",
           parameters: z.object({
             studentStats: z
               .object({
@@ -55,10 +70,11 @@ export async function POST(request: NextRequest) {
           }),
         },
         setGameDay: {
-          description: "设置当前游戏天数。每当进入新的一天或需要更新游戏进度时调用此工具。",
+          description: "【强制工具】设置当前游戏天数。当天回合超过3个或剧情需要推进时，必须立即调用此工具。严禁在文本中说'第X天开始'而不调用工具。严格按照1-9天的框架推进，不调用此工具直接进入下一天是严重错误。",
           parameters: z.object({
-            day: z.number().int().min(1).max(10).describe("游戏天数（1-10）"),
-            dayDescription: z.string().describe("这一天的简短描述"),
+            day: z.number().int().min(1).max(9).describe("当前游戏天数（1-9）"),
+            dayTitle: z.string().describe("当前天的主题标题（如'甜蜜陷阱'、'规则试探'等）"),
+            summary: z.string().describe("前一天的简要总结（第1天可省略）"),
           }),
         },
         endGame: {

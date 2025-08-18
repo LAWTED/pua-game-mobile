@@ -2,25 +2,32 @@ import React from "react";
 import { Info, Zap, ZapOff } from "lucide-react";
 
 interface PixelGameHeaderProps {
-  gameDay: number;
   onShowInstructions: () => void;
   isAutoMode?: boolean;
   onToggleAutoMode?: () => void;
+  currentGameDay?: number;
+  dayTitle?: string;
 }
 
 export function PixelGameHeader({
-  gameDay,
   onShowInstructions,
   isAutoMode = false,
-  onToggleAutoMode
+  onToggleAutoMode,
+  currentGameDay = 1,
+  dayTitle = ""
 }: PixelGameHeaderProps) {
   return (
     <div className="pixel-header bg-black text-white p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="pixel-text text-xl font-bold">PUA GAME</h1>
-          <div className="pixel-text text-sm">
-            Day: {gameDay}
+          <div className="flex items-center gap-2">
+            <h1 className="pixel-text text-xl font-bold">PUA GAME</h1>
+            {currentGameDay && (
+              <div className="pixel-button-small p-1 bg-orange-600 flex items-center gap-1">
+                <span className="text-xs">第{currentGameDay}天</span>
+                {dayTitle && <span className="text-xs">·{dayTitle}</span>}
+              </div>
+            )}
           </div>
           {isAutoMode && (
             <div className="flex items-center gap-1 pixel-button-small p-1 bg-green-600">

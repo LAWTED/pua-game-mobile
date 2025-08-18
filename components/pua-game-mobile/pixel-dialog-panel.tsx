@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Message } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PixelDialogPanelProps {
@@ -20,10 +20,58 @@ export function PixelDialogPanel({
 }: PixelDialogPanelProps) {
   const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // 智能滚动逻辑
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // 如果用户主动向上滚动，不要自动滚动到底部
+    if (userScrolledUp) {
+      return;
+    }
+
+    // 如果正在流式生成（streaming），给用户查看历史内容的自由
+    if (status === "streaming") {
+      return;
+    }
+
+    // 只在非流式状态且用户未主动滚动时，才自动滚动到底部
+    if (status === "idle" || status === "submitted") {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, status, userScrolledUp]);
+
+  // 监听用户滚动行为
+  useEffect(() => {
+    const container = scrollContainerRef.current?.parentElement?.parentElement;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px的容差
+
+      // 如果用户滚动到接近底部，认为不再是主动向上滚动
+      if (isNearBottom) {
+        setUserScrolledUp(false);
+      } else {
+        // 如果用户明显向上滚动，标记状态
+        setUserScrolledUp(true);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 当生成完成时，如果用户没有主动滚动，自动滚动到底部
+  useEffect(() => {
+    if (status === "idle" && !userScrolledUp) {
+      // 延迟一点确保内容渲染完成
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [status, userScrolledUp]);
 
 
   // 复制对话内容到剪贴板
@@ -53,6 +101,9 @@ export function PixelDialogPanel({
               if (part.toolInvocation.toolName === "rollADice") {
                 content += `🎲 **骰子结果**: ${part.toolInvocation.result}\n\n`;
               }
+              if (part.toolInvocation.toolName === "updateStats") {
+                content += `📊 **状态更新**: ${part.toolInvocation.args?.desc || part.toolInvocation.result}\n\n`;
+              }
             }
           });
 
@@ -75,10 +126,16 @@ export function PixelDialogPanel({
     }
   };
 
+  // 手动滚动到底部
+  const scrollToBottom = () => {
+    setUserScrolledUp(false);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   console.log(messages);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={scrollContainerRef}>
       {!gameStarted && (
         <div className="pixel-panel bg-white p-6 relative">
           {/* 复制按钮 */}
@@ -240,6 +297,21 @@ export function PixelDialogPanel({
                         </div>
                       );
                     }
+
+                    // 显示状态更新（updateStats）
+                    if (part.toolInvocation.toolName === "updateStats") {
+                      return (
+                        <div key={`${messageIndex}-${partIndex}`} className="my-2">
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-500 mr-2">📊 状态更新:</span>
+                            <span className="text-purple-600 font-medium pixel-text bg-purple-50 px-2 py-1 rounded text-sm border border-purple-200">
+                              {part.toolInvocation.args?.desc || part.toolInvocation.result}
+                            </span>
+                          </div>
+                          <div className="pixel-divider my-4"></div>
+                        </div>
+                      );
+                    }
                   }
 
                   return null;
@@ -277,6 +349,7 @@ export function PixelDialogPanel({
                 </motion.div>
               )}
             </AnimatePresence>
+
           </div>
         </div>
       )}
@@ -307,6 +380,7 @@ export function PixelDialogPanel({
           image-rendering: pixelated;
         }
 
+
         .pixel-dots span {
           animation: pixel-blink 1.5s infinite;
         }
@@ -335,6 +409,23 @@ export function PixelDialogPanel({
 
       {/* 滚动锚点 */}
       <div ref={messagesEndRef} />
+
+      {/* 回到底部按钮 - 只在用户向上滚动且游戏已开始时显示 */}
+      <AnimatePresence>
+        {userScrolledUp && gameStarted && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ duration: 0.2 }}
+            onClick={scrollToBottom}
+            className="fixed bottom-24 right-6 z-40 pixel-button-small p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
+            title="回到最新内容"
+          >
+            <ArrowDown size={20} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
