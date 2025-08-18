@@ -3,6 +3,7 @@ import { Message } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface PixelDialogPanelProps {
   messages: Message[];
@@ -23,6 +24,7 @@ export function PixelDialogPanel({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
 
   // 复制对话内容到剪贴板
   const copyToClipboard = async () => {
@@ -67,15 +69,9 @@ export function PixelDialogPanel({
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('复制失败:', error);
-      // 后备方案：创建临时文本区域
-      const textArea = document.createElement('textarea');
-      textArea.value = content;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // 在现代浏览器中，如果clipboard API失败，通常是权限问题
+      // 显示提示而不是使用已废弃的execCommand
+      alert('复制失败，请手动选择并复制文本');
     }
   };
 
@@ -261,17 +257,30 @@ export function PixelDialogPanel({
 
               return null;
             })}
+
+            {/* Loading indicator */}
+            <AnimatePresence>
+              {status === "submitted" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ 
+                    duration: 0.3, 
+                    ease: "easeOut",
+                    scale: { duration: 0.2 }
+                  }}
+                  className="flex items-center gap-2 py-2 text-gray-500"
+                >
+                  <div className="pixel-loader"></div>
+                  <span className="pixel-text text-xs">generating...</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}
 
-      {status === "in_progress" && (
-        <div className="pixel-panel bg-yellow-100 p-4">
-          <div className="pixel-loading">
-            <span className="pixel-text text-sm">LOADING...</span>
-          </div>
-        </div>
-      )}
 
       <div ref={messagesEndRef} />
 
@@ -289,6 +298,38 @@ export function PixelDialogPanel({
 
         .pixel-button-small:hover {
           box-shadow: 2px 2px 0 0 rgba(0,0,0,0.3);
+        }
+
+        .pixel-loader {
+          width: 8px;
+          height: 8px;
+          background: #9ca3af;
+          animation: pixel-blink 1s infinite;
+          image-rendering: pixelated;
+        }
+
+        .pixel-dots span {
+          animation: pixel-blink 1.5s infinite;
+        }
+
+        .dot-1 { animation-delay: 0s; }
+        .dot-2 { animation-delay: 0.5s; }
+        .dot-3 { animation-delay: 1s; }
+
+        @keyframes pixel-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pixel-blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0.3; }
+        }
+
+        .pixel-loading {
+          background: linear-gradient(45deg, #e0f2fe, #f3e5f5);
+          border-radius: 4px;
+          padding: 8px 12px;
         }
       `}</style>
     </div>

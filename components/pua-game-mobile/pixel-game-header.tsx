@@ -1,16 +1,18 @@
 import React from "react";
-import { Info, Zap } from "lucide-react";
+import { Info, Zap, ZapOff } from "lucide-react";
 
 interface PixelGameHeaderProps {
   gameDay: number;
   onShowInstructions: () => void;
   isAutoMode?: boolean;
+  onToggleAutoMode?: () => void;
 }
 
 export function PixelGameHeader({
   gameDay,
   onShowInstructions,
-  isAutoMode = false
+  isAutoMode = false,
+  onToggleAutoMode
 }: PixelGameHeaderProps) {
   return (
     <div className="pixel-header bg-black text-white p-4">
@@ -29,6 +31,21 @@ export function PixelGameHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          {onToggleAutoMode && (
+            <button
+              onClick={onToggleAutoMode}
+              className={`pixel-button-small p-2 flex items-center gap-1 ${
+                isAutoMode 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-gray-600 hover:bg-gray-700'
+              }`}
+              title={isAutoMode ? "关闭自动模式" : "开启自动模式"}
+            >
+              {isAutoMode ? <Zap size={16} /> : <ZapOff size={16} />}
+              <span className="text-xs">{isAutoMode ? 'AUTO' : 'MANUAL'}</span>
+            </button>
+          )}
+          
           <button
             onClick={onShowInstructions}
             className="pixel-button-small p-2 bg-blue-600 hover:bg-blue-700"
@@ -58,6 +75,10 @@ export function PixelGameHeader({
 
         .pixel-button-small:active {
           transform: translate(1px, 1px);
+        }
+
+        .pixel-button-small:hover {
+          box-shadow: 2px 2px 0 0 rgba(0,0,0,0.3);
         }
       `}</style>
     </div>

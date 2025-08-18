@@ -30,8 +30,8 @@ export default function PuaGameMobile() {
   const currentModel = "deepseek";
   const [bottomPanelHeight, setBottomPanelHeight] = useState(0);
   
-  // Auto mode configuration
-  const isAutoMode = process.env.NEXT_PUBLIC_AUTO_MODE === 'true';
+  // Auto mode configuration - 现在可以通过UI控制
+  const [isAutoMode, setIsAutoMode] = useState(process.env.NEXT_PUBLIC_AUTO_MODE === 'true');
   const [autoLog, setAutoLog] = useState<string[]>([]);
   const [currentRound, setCurrentRound] = useState<{
     aiResponse?: string;
@@ -285,18 +285,43 @@ export default function PuaGameMobile() {
 
 ### 第1天：甜蜜陷阱
 新生见导师，表面上关怀备至，实际上开始布局。"我把你当亲学生看"系列开始上演。
+**突发事件**：导师请吃饭，饭桌上试探学生家庭背景和弱点。
 
-### 第2-3天：规则确立
+### 第2天：规则试探
 制定"实验室守则"，建立权威体系。"这都是为了你好"的洗脑循环正式启动。
+**突发事件**：第一次"小任务"测试，看学生的顺从度和底线在哪里。
 
-### 第4-5天：温水煮青蛙
-逐渐增加不合理要求，用"学术训练"包装剥削行为。"吃得苦中苦，方为人上人"。
+### 第3天：边界模糊
+私人事务开始"无意"介入学术讨论，职业界限开始模糊。
+**突发事件**：导师突然请求帮忙辅导孩子作业，"反正你也闲着"。
 
-### 第6-7天：深度绑架
-沉没成本发挥作用，让你觉得现在退出就是前功尽弃。"都坚持这么久了，别功亏一篑"。
+### 第4天：温水加温
+逐渐增加不合理要求，工作量突然翻倍，用"学术训练"包装剥削行为。
+**突发事件**：其他同学或师兄的"善意提醒"，让你意识到情况不对劲。
 
-### 第8-9天：摊牌时刻
-关键选择出现，是继续忍受还是奋起反抗？每个选择都有意想不到的黑色幽默结果。
+### 第5天：深度绑架
+沉没成本开始发挥作用，重要学术机会与服从度挂钩。"都坚持这么久了，别功亏一篑"。
+**突发事件**：导师暗示推荐信和毕业与表现直接相关。
+
+### 第6天：觉醒时刻
+开始质疑关系的合理性，内心挣扎加剧。
+**突发事件**：意外发现导师对其他学生的相似行为，或者听到相关传言。
+
+### 第7天：外部视角
+遇到有类似经历的师兄师姐，或接触到外部资源。
+**突发事件**：获得心理咨询、法律援助或其他导师的建议。
+
+### 第8天：策略调整  
+学会在夹缝中生存的智慧，开始制定应对策略。
+**突发事件**：导师施压升级，或者因为外部压力意外软化态度。
+
+### 第9天：摊牌准备
+积累的勇气与智慧开始发挥作用，准备关键选择。
+**突发事件**：关键证据出现，或者重要转机突然降临。
+
+### 第10天：结局时刻
+最终选择决定命运走向，各种"精彩"结局等你体验。
+**突发事件**：导师摊牌、学校介入、或者意外的第三方力量参与。
 
 ## 游戏机制
 
@@ -352,16 +377,54 @@ export default function PuaGameMobile() {
 1. 用户永远无法回复你, 需要你使用工具提供选项。
 2. 每当需要用户做出选择, 选择行动时, 必须使用工具 renderChoices 工具, 绝不能只输出文本提示。
 3. 当输出像"请选择你的行动："这样的提示时, 后就要使用工具 renderChoices 工具提供选项。
-4. 每次场景描述必须以【第X天】开头，例如【第1天】、【第2天】等，这是识别游戏进度的关键。
+4. 每次进入新的一天时，必须先调用setGameDay工具设置天数，然后在场景描述中以【第X天】开头。
 5. 请使用 Markdown 格式输出文本信息, 对话内容使用 > 引用。
 6. 每当玩家行动导致数值变化时，必须使用 updateStats 工具更新数值，包括游戏初始化时设置初始数值。
-7. 使用 updateStats 工具时，必须提供变化说明，包括学生数值的变化原因。
-8. 使用 rollADice 工具时，必须设置 sides=20 和 rolls=1 参数。
-9. **场景描述要求**：必须包含环境细节、人物情绪、具体对话，增强沉浸感。
-10. **语调控制**：根据情况调整导师说话风格和态度。
-11. **连锁反应**：某些行动会触发多项数值变化和后续事件。
+7. **数值更新规则**：
+   - updateStats工具现在需要传递**最终目标数值**（0-100），不是增量变化
+   - 根据角色初始数值和当前情况，合理设定新的目标数值
+   - 数值变化幅度：小行动1-3点，中等行动4-8点，重大行动9-15点，极端情况可达20点
+   - 心理韧性：受挫折、压力、成功、支持影响
+   - 学术进展：受导师态度、资源获取、论文进度影响  
+   - 觉察水平：受经验积累、信息获取、反思程度影响
+   - 角色初始数值参考：陆星河(60,40,30)，赵一鸣(40,70,20)
+8. **数值阈值影响剧情规则**：
+   
+   **心理韧性阈值效应**：
+   - ≤10：极度脆弱，必须提供"寻求紧急帮助"选项，导师稍微施压就可能崩溃
+   - ≤20：情绪崩溃，选择中移除高风险对抗选项，容易做出极端决定
+   - ≥80：心态稳定，可以添加"直接反驳导师"等强硬选项
+   - ≥90：钢铁意志，几乎免疫导师的心理攻击，获得"反向操控"选项
+   
+   **学术进展阈值效应**：
+   - ≤10：学术停滞，导师威胁"你永远毕业不了"极其有效，必须服从
+   - ≤20：毕业困难，导师威胁推荐信、毕业等有强制力
+   - ≥80：接近毕业，导师威胁效果大减，可以添加"我快毕业了，无所谓"选项
+   - ≥90：学术成功，几乎不受导师威胁，可以添加"举报导师"等强硬选项
+   
+   **觉察水平阈值效应**：
+   - ≤10：完全迷茫，无法识别明显的操控手段，容易上当
+   - ≥80：火眼金睛，可以获得"识破导师真实意图"等特殊选项
+   - ≥90：洞察一切，可以获得"心理反击"、"预判导师下一步"等高级选项
+   
+   **组合效应**：
+   - 三项数值都≥70：解锁"完美应对"类选项
+   - 任意数值≤15：触发"危机模式"，剧情转向自救或求助
+   - 心理韧性低+觉察水平高：产生"痛苦的清醒"状态，选择更加纠结
+9. 使用 updateStats 工具时，必须提供变化说明，包括学生数值的变化原因。
+10. 使用 rollADice 工具时，必须设置 sides=20 和 rolls=1 参数。
+11. **场景描述要求**：必须包含环境细节、人物情绪、具体对话，增强沉浸感。
+12. **语调控制**：根据情况调整导师说话风格和态度。
+13. **连锁反应**：某些行动会触发多项数值变化和后续事件。
+14. **游戏结束**：当故事达到自然结论时（如毕业、转学、退学等），必须调用endGame工具正式结束游戏。
+15. **天数管理**：使用setGameDay工具来推进游戏进度，确保每天都有不同的突发情况和剧情发展。
 
-开始游戏时，让玩家选择角色，然后立即开始【第1天】的"精彩"体验。记住：我们要的是苦中作乐，而不是苦大仇深。
+开始游戏时，首先介绍游戏背景和设定，然后让玩家选择角色。选择角色后，调用setGameDay设置为第1天，然后立即开始【第1天】的"精彩"体验。记住：我们要的是苦中作乐，而不是苦大仇深。
+
+**重要提醒**：
+- 游戏开始时必须先输出完整的开场介绍文本，解释游戏背景、规则和角色特点，然后再使用renderChoices工具让玩家选择角色。不要直接跳到角色选择。
+- 每天都应该有新的突发情况、新的挑战或剧情转折，避免单调重复。
+- 适时推进天数，通过setGameDay工具让游戏有明确的时间线进展。
 `;
 
   // 游戏介绍文本
@@ -399,10 +462,31 @@ export default function PuaGameMobile() {
 
 🎮 **选择你的角色，开始这段"奇妙"的旅程**`;
 
+  // 动态生成系统提示，包含当前数值状态
+  const getEnhancedSystemPrompt = () => {
+    let enhancedPrompt = systemPrompt;
+    
+    if (gameStarted && currentStats.student) {
+      const stats = currentStats.student;
+      const statusInfo = `
+
+## 当前学生状态
+- 🧠 心理韧性: ${stats.mentalResilience}/100
+- 📈 学术进展: ${stats.academicProgress}/100  
+- 🔍 觉察水平: ${stats.awarenessLevel}/100
+
+**重要**: 根据以上数值状态调整剧情和选项，严格遵循数值阈值影响规则。`;
+      
+      enhancedPrompt += statusInfo;
+    }
+    
+    return enhancedPrompt;
+  };
+
   const { messages, append, addToolResult, status } = useChat({
     api: "/api/pua-game",
     body: {
-      systemPrompt,
+      systemPrompt: getEnhancedSystemPrompt(),
       model: currentModel,
     },
     initialMessages: [],
@@ -478,11 +562,11 @@ export default function PuaGameMobile() {
 
       if (toolCall.toolName === "updateStats" && toolCall.args) {
         const {
-          studentDelta,
+          studentStats,
           desc,
           studentDesc,
         } = toolCall.args as {
-          studentDelta: {
+          studentStats: {
             mentalResilience: number;  // 心理韧性 🧠
             academicProgress: number;  // 学术进展 📈
             awarenessLevel: number;    // 觉察水平 🔍
@@ -491,24 +575,35 @@ export default function PuaGameMobile() {
           studentDesc: string;
         };
 
-        let newStudentStats = { ...currentStats.student };
+        const oldStats = { ...currentStats.student };
         let statsChangeLog = '';
+
+        // 数值合理性检查和约束
+        const newStudentStats = {
+          mentalResilience: Math.max(0, Math.min(100, Math.round(studentStats.mentalResilience))),
+          academicProgress: Math.max(0, Math.min(100, Math.round(studentStats.academicProgress))),
+          awarenessLevel: Math.max(0, Math.min(100, Math.round(studentStats.awarenessLevel))),
+        };
 
         if (statsHistory.length === 0) {
           // 初始化设置
-          newStudentStats = { ...studentDelta };
           statsChangeLog = `初始化数值 - 🧠${newStudentStats.mentalResilience} 📈${newStudentStats.academicProgress} 🔍${newStudentStats.awarenessLevel}`;
         } else {
-          // 增量更新
-          (
-            Object.keys(studentDelta) as (keyof typeof newStudentStats)[]
-          ).forEach((k) => {
-            newStudentStats[k] += studentDelta[k];
-            // 确保数值在0-100范围内
-            newStudentStats[k] = Math.max(0, Math.min(100, newStudentStats[k]));
+          // 计算变化量用于显示
+          const changes = {
+            mentalResilience: newStudentStats.mentalResilience - oldStats.mentalResilience,
+            academicProgress: newStudentStats.academicProgress - oldStats.academicProgress,
+            awarenessLevel: newStudentStats.awarenessLevel - oldStats.awarenessLevel,
+          };
+
+          // 合理性检查：单次变化不应超过25点
+          Object.entries(changes).forEach(([key, change]) => {
+            if (Math.abs(change) > 25) {
+              console.warn(`⚠️ 数值变化过大: ${key} ${change}, 当前值: ${oldStats[key as keyof typeof oldStats]} -> 目标值: ${studentStats[key as keyof typeof studentStats]}`);
+            }
           });
           
-          const studentChanges = Object.entries(studentDelta)
+          const studentChanges = Object.entries(changes)
             .filter(([_, value]) => value !== 0)
             .map(([key, value]) => {
               const emoji = key === 'mentalResilience' ? '🧠' : key === 'academicProgress' ? '📈' : '🔍';
@@ -530,6 +625,49 @@ export default function PuaGameMobile() {
           setTimeout(() => addRoundToLog(), 100);
         }
         
+        // 数值阈值分析和状态检测
+        const getStatThresholdInfo = (stats: typeof newStudentStats) => {
+          const thresholds = [];
+          
+          // 心理韧性阈值
+          if (stats.mentalResilience <= 10) {
+            thresholds.push("⚠️ 极度脆弱：心理濒临崩溃，需要紧急干预");
+          } else if (stats.mentalResilience <= 20) {
+            thresholds.push("😰 情绪崩溃：选择受限，容易做出极端决定");
+          } else if (stats.mentalResilience >= 80) {
+            thresholds.push("💪 心态稳定：抗压能力强，不易被操控");
+          } else if (stats.mentalResilience >= 90) {
+            thresholds.push("🛡️ 钢铁意志：几乎免疫心理攻击");
+          }
+          
+          // 学术进展阈值
+          if (stats.academicProgress <= 10) {
+            thresholds.push("📉 学术停滞：毕业遥遥无期，导师威胁极其有效");
+          } else if (stats.academicProgress <= 20) {
+            thresholds.push("⏰ 毕业困难：导师威胁有效，选择受限");
+          } else if (stats.academicProgress >= 80) {
+            thresholds.push("🎓 接近毕业：导师影响力下降，获得更多选择权");
+          } else if (stats.academicProgress >= 90) {
+            thresholds.push("🏆 学术成功：几乎不受导师威胁影响");
+          }
+          
+          // 觉察水平阈值
+          if (stats.awarenessLevel <= 10) {
+            thresholds.push("😵 完全迷茫：无法识别操控，容易上当");
+          } else if (stats.awarenessLevel >= 80) {
+            thresholds.push("🔍 火眼金睛：能识破导师套路，获得额外选项");
+          } else if (stats.awarenessLevel >= 90) {
+            thresholds.push("🕵️ 洞察一切：完全看透导师心理，掌握主动权");
+          }
+          
+          return thresholds;
+        };
+
+        const thresholdInfo = getStatThresholdInfo(newStudentStats);
+        if (thresholdInfo.length > 0) {
+          console.log("📊 数值阈值状态:", thresholdInfo.join(" | "));
+        }
+
         setCurrentStats({
           student: newStudentStats,
         });
@@ -540,6 +678,7 @@ export default function PuaGameMobile() {
             desc,
             studentDesc,
             time: Date.now(),
+            thresholdInfo, // 保存阈值信息
           },
           ...prev,
         ]);
@@ -548,43 +687,39 @@ export default function PuaGameMobile() {
         return "updateStats";
       }
 
+      if (toolCall.toolName === "setGameDay" && toolCall.args) {
+        const args = toolCall.args as unknown as { day: number; dayDescription: string };
+        const newDay = args.day;
+        const description = args.dayDescription;
+        
+        console.log(`AI设置游戏天数: ${gameDay} -> ${newDay}, 描述: ${description}`);
+        setGameDay(newDay);
+        
+        return `已进入第${newDay}天: ${description}`;
+      }
+
+      if (toolCall.toolName === "endGame" && toolCall.args) {
+        const args = toolCall.args as unknown as { 
+          ending: string; 
+          summary: string; 
+          finalMessage: string; 
+        };
+        
+        console.log(`游戏结束 - 结局: ${args.ending}`);
+        console.log(`结局总结: ${args.summary}`);
+        console.log(`最终消息: ${args.finalMessage}`);
+        
+        // 可以在这里设置游戏结束状态
+        // setGameEnded(true); // 如果需要的话
+        
+        return `游戏已结束 - ${args.ending}`;
+      }
+
       return null;
     },
   });
 
-  // 监听消息变化，检测游戏天数
-  useEffect(() => {
-    if (!gameStarted) return;
-
-    const lastAssistantMessage = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant" && typeof m.content === "string");
-
-    if (
-      lastAssistantMessage &&
-      typeof lastAssistantMessage.content === "string"
-    ) {
-      const dayMatches = [
-        lastAssistantMessage.content.match(/【第(\d+)天】/),
-        lastAssistantMessage.content.match(/第(\d+)天/),
-        lastAssistantMessage.content.match(/Day\s*(\d+)/i),
-      ];
-
-      for (const dayMatch of dayMatches) {
-        if (dayMatch && dayMatch[1]) {
-          const day = parseInt(dayMatch[1]);
-          console.log(
-            `检测到天数标记: ${dayMatch[0]}, 解析天数: ${day}, 当前gameDay: ${gameDay}`
-          );
-          if (!isNaN(day) && day > gameDay) {
-            console.log(`更新游戏天数: ${gameDay} -> ${day}`);
-            setGameDay(day);
-            break;
-          }
-        }
-      }
-    }
-  }, [messages, gameStarted]);
+  // 游戏天数现在通过setGameDay工具调用更新，不再需要正则表达式检测
 
   // Auto mode: dice auto-handling (choices are handled in onToolCall)
   useEffect(() => {
@@ -652,6 +787,19 @@ export default function PuaGameMobile() {
     }, 1500);
   };
 
+  // Auto mode toggle function
+  const handleToggleAutoMode = () => {
+    const newAutoMode = !isAutoMode;
+    setIsAutoMode(newAutoMode);
+    
+    // 添加提示信息
+    if (newAutoMode) {
+      console.log('🤖 自动模式已开启 - AI将自动做出选择和投掷骰子');
+    } else {
+      console.log('👤 手动模式已开启 - 需要手动选择和操作');
+    }
+  };
+
   // 开始游戏
   const startGame = () => {
     setGameStarted(true);
@@ -670,8 +818,7 @@ export default function PuaGameMobile() {
           gameDay={gameDay}
           onShowInstructions={() => setShowInstructions(true)}
           isAutoMode={isAutoMode}
-          onDownloadAutoLog={saveAutoLogToFile}
-          autoLogCount={autoLog.length}
+          onToggleAutoMode={handleToggleAutoMode}
         />
       </div>
 

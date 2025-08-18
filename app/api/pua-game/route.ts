@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     const result = await streamText({
       model: selectedModel,
-      system: systemPrompt,
+      system: systemPrompt + "\n\n重要：每次开始回应前，先简短说明你正在做什么（比如'analyzing situation', 'plotting response', 'calculating odds'等），让玩家知道郑教授的思考状态。",
       messages: messages,
       tools: {
         renderChoices: {
@@ -41,17 +41,32 @@ export async function POST(request: NextRequest) {
           description:
             "更新学生的核心生存数值。每当数值发生变化时（包括游戏开始初始化），都应调用此工具，并提供变化说明。",
           parameters: z.object({
-            studentDelta: z
+            studentStats: z
               .object({
-                mentalResilience: z.number().describe("心理韧性变化（0-100）"),
-                academicProgress: z.number().describe("学术进展变化（0-100）"),
-                awarenessLevel: z.number().describe("觉察水平变化（0-100）"),
+                mentalResilience: z.number().min(0).max(100).describe("心理韧性最终数值（0-100）"),
+                academicProgress: z.number().min(0).max(100).describe("学术进展最终数值（0-100）"),
+                awarenessLevel: z.number().min(0).max(100).describe("觉察水平最终数值（0-100）"),
               })
               .describe(
-                "学生数值变化（mentalResilience、academicProgress、awarenessLevel）"
+                "学生最终数值（mentalResilience、academicProgress、awarenessLevel）"
               ),
             desc: z.string().describe("整体数值变化的简要描述"),
             studentDesc: z.string().describe("学生数值变化的说明"),
+          }),
+        },
+        setGameDay: {
+          description: "设置当前游戏天数。每当进入新的一天或需要更新游戏进度时调用此工具。",
+          parameters: z.object({
+            day: z.number().int().min(1).max(10).describe("游戏天数（1-10）"),
+            dayDescription: z.string().describe("这一天的简短描述"),
+          }),
+        },
+        endGame: {
+          description: "结束游戏并显示最终结局。当故事达到自然结论时调用此工具。",
+          parameters: z.object({
+            ending: z.string().describe("结局类型（如'完美毕业'、'华丽转身'、'逃跑路线'等）"),
+            summary: z.string().describe("结局总结文本"),
+            finalMessage: z.string().describe("给玩家的最终消息"),
           }),
         },
       },
