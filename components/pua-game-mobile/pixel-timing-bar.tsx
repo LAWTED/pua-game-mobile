@@ -15,7 +15,8 @@ export function PixelTimingBar({
   actionName = "ACTION"
 }: PixelTimingBarProps) {
   const [isActive, setIsActive] = useState(false);
-  const [pointerPosition, setPointerPosition] = useState(0);
+  const [pointerPosition, setPointerPosition] = useState(50);
+  const [direction, setDirection] = useState(1); // 1为右，-1为左
   const [result, setResult] = useState<'perfect' | 'good' | 'okay' | 'miss' | null>(null);
   const [showResult, setShowResult] = useState(false);
 
@@ -42,7 +43,8 @@ export function PixelTimingBar({
     setIsActive(true);
     setResult(null);
     setShowResult(false);
-    setPointerPosition(0);
+    setPointerPosition(50);
+    setDirection(1);
   }, [disabled, isActive]);
 
   // Handle tap/click
@@ -71,27 +73,36 @@ export function PixelTimingBar({
     }, 1500);
   }, [isActive, disabled, pointerPosition, settings, onComplete]);
 
-  // Animate pointer
+  // Animate pointer with oscillation
   useEffect(() => {
     if (!isActive) return;
 
     const interval = setInterval(() => {
       setPointerPosition(prev => {
-        const next = prev + settings.speed;
+        const next = prev + (settings.speed * direction);
+        
+        // Check boundaries and reverse direction
         if (next >= 100) {
-          // Auto-miss if pointer reaches end
-          setIsActive(false);
-          setResult('miss');
-          setShowResult(true);
-          setTimeout(() => onComplete('miss'), 1500);
+          setDirection(-1);
           return 100;
+        } else if (next <= 0) {
+          setDirection(1);
+          return 0;
         }
+        
         return next;
+      });
+      
+      // Update direction based on current position  
+      setDirection(prevDir => {
+        if (pointerPosition >= 100) return -1;
+        if (pointerPosition <= 0) return 1;
+        return prevDir;
       });
     }, 16); // ~60fps
 
     return () => clearInterval(interval);
-  }, [isActive, settings.speed, onComplete]);
+  }, [isActive, direction, settings.speed, pointerPosition]);
 
   const getResultInfo = (resultType: string) => {
     switch (resultType) {
@@ -112,14 +123,6 @@ export function PixelTimingBar({
 
   return (
     <div className="pixel-timing-container">
-      <div className="timing-header">
-        <h3 className="timing-title">TIMING CHALLENGE</h3>
-        <div className="action-name">{actionName}</div>
-        <div className="difficulty-badge difficulty-{difficulty}">
-          {difficulty.toUpperCase()}
-        </div>
-      </div>
-
       <div className="timing-bar-container">
         {/* Background bar */}
         <div className="timing-bar-bg">
@@ -147,19 +150,11 @@ export function PixelTimingBar({
           }} />
 
           {/* Pointer */}
-          <motion.div 
+          <div 
             className="timing-pointer"
             style={{ 
               left: `${pointerPosition}%`,
-              opacity: isActive ? 1 : 0.5
-            }}
-            animate={{
-              y: isActive ? [-2, 2, -2] : [0]
-            }}
-            transition={{
-              duration: 0.3,
-              repeat: isActive ? Infinity : 0,
-              ease: "easeInOut"
+              opacity: isActive ? 1 : 0.3
             }}
           />
         </div>
@@ -211,51 +206,6 @@ export function PixelTimingBar({
           font-family: "Courier New", monospace;
         }
 
-        .timing-header {
-          text-align: center;
-          margin-bottom: 16px;
-          padding: 8px;
-          background: #f3f4f6;
-          border: 2px solid #1f2937;
-        }
-
-        .timing-title {
-          font-size: 0.875rem;
-          font-weight: bold;
-          color: #1f2937;
-          margin: 0 0 4px 0;
-          letter-spacing: 0.1em;
-        }
-
-        .action-name {
-          font-size: 0.75rem;
-          color: #4b5563;
-          margin-bottom: 4px;
-        }
-
-        .difficulty-badge {
-          display: inline-block;
-          padding: 2px 8px;
-          border: 1px solid #1f2937;
-          font-size: 0.625rem;
-          font-weight: bold;
-        }
-
-        .difficulty-easy {
-          background: #10b981;
-          color: white;
-        }
-
-        .difficulty-medium {
-          background: #f59e0b;
-          color: white;
-        }
-
-        .difficulty-hard {
-          background: #ef4444;
-          color: white;
-        }
-
         .timing-bar-container {
           position: relative;
           margin-bottom: 16px;
@@ -271,7 +221,7 @@ export function PixelTimingBar({
             0 0 0 6px #1f2937,
             4px 4px 0 6px rgba(31, 41, 55, 0.2);
           position: relative;
-          overflow: hidden;
+          overflow: visible;
           image-rendering: pixelated;
         }
 
@@ -302,14 +252,16 @@ export function PixelTimingBar({
 
         .timing-pointer {
           position: absolute;
-          top: -8px;
-          width: 6px;
-          height: 56px;
-          background: #1f2937;
-          border: 2px solid #ffffff;
-          box-shadow: 2px 2px 0 0 rgba(31, 41, 55, 0.3);
+          top: -10px;
+          width: 8px;
+          height: 60px;
+          background: #000000;
+          border: 3px solid #ffffff;
+          box-shadow: 
+            0 0 0 1px #000000,
+            2px 2px 4px rgba(0, 0, 0, 0.5);
           transform: translateX(-50%);
-          z-index: 10;
+          z-index: 20;
         }
 
         .timing-pointer::after {
@@ -318,10 +270,10 @@ export function PixelTimingBar({
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 12px;
-          height: 8px;
-          background: #ef4444;
-          border: 1px solid #1f2937;
+          width: 14px;
+          height: 10px;
+          background: #ff0000;
+          border: 2px solid #000000;
         }
 
         .timing-start-button,

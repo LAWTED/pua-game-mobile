@@ -2,13 +2,29 @@ import React from 'react';
 import { Dices } from 'lucide-react';
 
 interface PixelDiceProps {
-  value: number | null;
-  isRolling: boolean;
-  onRoll: () => void;
+  onRoll: (result: number) => void;
   disabled?: boolean;
+  actionName?: string;
 }
 
-export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelDiceProps) {
+export function PixelDice({ onRoll, disabled = false, actionName = "ACTION" }: PixelDiceProps) {
+  const [value, setValue] = React.useState<number | null>(null);
+  const [isRolling, setIsRolling] = React.useState(false);
+
+  const handleRoll = () => {
+    if (disabled || isRolling) return;
+    
+    setIsRolling(true);
+    setValue(null);
+    
+    // 模拟投骰子动画延迟
+    setTimeout(() => {
+      const result = Math.floor(Math.random() * 20) + 1;
+      setValue(result);
+      setIsRolling(false);
+      onRoll(result);
+    }, 300);
+  };
   const getDiceResult = () => {
     if (value === null) return null;
     if (value >= 16) return { text: 'CRITICAL!', color: '#10b981', emoji: '🔥' };
@@ -23,7 +39,7 @@ export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelD
     <div className="flex flex-col items-center space-y-4">
       <div 
         className={`pixel-dice-enhanced ${isRolling ? 'rolling' : ''} ${disabled ? 'disabled' : ''}`}
-        onClick={disabled ? undefined : onRoll}
+        onClick={disabled ? undefined : handleRoll}
       >
         {value !== null ? (
           <div className="dice-result">
@@ -34,17 +50,28 @@ export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelD
         )}
       </div>
 
+      {/* Roll button */}
+      {!isRolling && (
+        <button
+          onClick={handleRoll}
+          disabled={disabled}
+          className="pixel-button px-6 py-2 bg-orange-500 text-white font-bold border-2 border-black hover:bg-orange-600 disabled:bg-gray-400"
+        >
+          {value !== null ? '再次投掷' : '投掷骰子'}
+        </button>
+      )}
+
+      {isRolling && (
+        <div className="text-center text-sm text-gray-600 font-mono">
+          🎲 投掷中...
+        </div>
+      )}
+
       {result && (
         <div className="pixel-result-panel">
           <div className="result-line" style={{ backgroundColor: result.color }}>
             <span className="result-emoji">{result.emoji}</span>
             <span className="result-text">{result.text}</span>
-          </div>
-          <div className="result-description">
-            {value! >= 16 && "Outstanding success with bonus effects!"}
-            {value! >= 12 && value! < 16 && "Success! Your action works as intended."}
-            {value! >= 8 && value! < 12 && "Mixed results. Some progress made."}
-            {value! < 8 && "Things don't go as planned..."}
           </div>
         </div>
       )}
@@ -119,14 +146,10 @@ export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelD
         .pixel-result-panel {
           background: #f9fafb;
           border: 3px solid #1f2937;
-          box-shadow: 
-            0 0 0 3px #ffffff,
-            0 0 0 6px #1f2937,
-            4px 4px 0 6px rgba(31, 41, 55, 0.2);
-          padding: 12px 16px;
-          min-width: 200px;
+          box-shadow: 4px 4px 0 0 rgba(31, 41, 55, 0.2);
+          padding: 8px 12px;
+          min-width: 160px;
           text-align: center;
-          image-rendering: pixelated;
         }
 
         .result-line {
@@ -134,8 +157,7 @@ export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelD
           align-items: center;
           justify-content: center;
           gap: 8px;
-          padding: 6px 12px;
-          margin-bottom: 8px;
+          padding: 4px 8px;
           border: 2px solid #1f2937;
           font-family: "Courier New", monospace;
           font-weight: bold;
@@ -143,20 +165,12 @@ export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelD
         }
 
         .result-emoji {
-          font-size: 1.2rem;
+          font-size: 1rem;
         }
 
         .result-text {
-          font-size: 0.875rem;
-          letter-spacing: 0.05em;
-        }
-
-        .result-description {
-          font-family: "Courier New", monospace;
           font-size: 0.75rem;
-          color: #4b5563;
-          line-height: 1.3;
-          text-align: center;
+          letter-spacing: 0.05em;
         }
 
         @keyframes roll-bounce {
@@ -168,25 +182,16 @@ export function PixelDice({ value, isRolling, onRoll, disabled = false }: PixelD
           }
         }
 
-        /* Add some sparkle effect for critical hits */
-        .pixel-dice-enhanced::before {
-          content: '';
-          position: absolute;
-          top: -2px;
-          left: -2px;
-          right: -2px;
-          bottom: -2px;
-          background: linear-gradient(45deg, transparent, transparent 40%, #fbbf24, transparent 60%, transparent);
-          opacity: 0;
-          animation: sparkle 2s ease-in-out infinite;
-          z-index: -1;
-          pointer-events: none;
+        .pixel-button {
+          font-family: "Courier New", monospace;
+          transition: all 0.1s;
+          cursor: pointer;
         }
 
-        @keyframes sparkle {
-          0%, 100% { opacity: 0; transform: rotate(0deg); }
-          50% { opacity: 0.3; transform: rotate(180deg); }
+        .pixel-button:active:not(:disabled) {
+          transform: translate(1px, 1px);
         }
+
       `}</style>
     </div>
   );

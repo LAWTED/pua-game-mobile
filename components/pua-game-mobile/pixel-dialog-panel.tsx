@@ -23,60 +23,66 @@ export function PixelDialogPanel({
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 智能滚动逻辑 - 基于AI SDK最佳实践
+  // 智能滚动逻辑
   useEffect(() => {
     // 如果用户主动向上滚动，不要自动滚动到底部
     if (userScrolledUp) {
       return;
     }
 
-    // 自动滚动到底部，无论是流式生成还是生成完成
-    // 这样确保用户能看到实时生成的内容
-    const timeoutId = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 50); // 减少延迟，确保流式内容能及时显示
-
-    return () => clearTimeout(timeoutId);
+    // 自动滚动到底部，包括流式生成时
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userScrolledUp]);
 
-  // 监听用户滚动行为 - 改进的检测逻辑
+  // 监听用户滚动行为
   useEffect(() => {
     const container = scrollContainerRef.current?.parentElement?.parentElement;
     if (!container) return;
 
-    let isUserScrolling = false;
-    let scrollTimeout: NodeJS.Timeout;
+    let lastScrollTop = container.scrollTop;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20; // 更小的容差
       
-      // 标记用户正在滚动
-      isUserScrolling = true;
+      // 获取容器的 padding-bottom 值
+      const computedStyle = window.getComputedStyle(container);
+      const paddingBottom = parseInt(computedStyle.paddingBottom, 10) || 0;
       
-      // 清除之前的超时
-      clearTimeout(scrollTimeout);
+      // 考虑 padding 后的实际可滚动高度
+      const actualScrollHeight = scrollHeight - paddingBottom;
+      const distanceFromBottom = actualScrollHeight - (scrollTop + clientHeight);
       
-      // 设置超时来检测滚动结束
-      scrollTimeout = setTimeout(() => {
-        isUserScrolling = false;
-        
-        // 滚动结束后，根据位置设置状态
-        if (isAtBottom) {
-          setUserScrolledUp(false);
-        } else {
-          setUserScrolledUp(true);
-        }
-      }, 150); // 150ms 后认为滚动结束
+      // 判断是否在底部 - 增加容差到 150px 以适应padding
+      const isAtBottom = distanceFromBottom <= 150;
+      
+      // 检测滚动方向
+      const isScrollingUp = scrollTop < lastScrollTop;
+      
+      // 如果用户主动向上滚动且不在底部，停止自动滚动
+      if (isScrollingUp && !isAtBottom) {
+        setUserScrolledUp(true);
+      } 
+      // 如果用户滚动到底部附近，恢复自动滚动
+      else if (isAtBottom) {
+        setUserScrolledUp(false);
+      }
+      
+      lastScrollTop = scrollTop;
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 当生成完成时，如果用户没有主动滚动，自动滚动到底部
+  useEffect(() => {
+    if (status === "idle" && !userScrolledUp) {
+      // 延迟一点确保内容渲染完成
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [status, userScrolledUp]);
 
   // 移除了重复的滚动逻辑，已合并到上面的useEffect中
 
@@ -107,6 +113,9 @@ export function PixelDialogPanel({
               }
               if (part.toolInvocation.toolName === "rollADice") {
                 content += `🎲 **骰子结果**: ${part.toolInvocation.result}\n\n`;
+              }
+              if (part.toolInvocation.toolName === "timingChallenge") {
+                content += `⏱️ **计时结果**: ${part.toolInvocation.result}\n\n`;
               }
               if (part.toolInvocation.toolName === "updateStats") {
                 content += `📊 **状态更新**: ${part.toolInvocation.args?.desc || part.toolInvocation.result}\n\n`;
@@ -142,7 +151,7 @@ export function PixelDialogPanel({
   console.log(messages);
 
   return (
-    <div className="space-y-4" ref={scrollContainerRef}>
+    <div className="space-y-4 relative" ref={scrollContainerRef}>
       {!gameStarted && (
         <div className="pixel-panel bg-white p-6 relative">
           {/* 复制按钮 */}
@@ -305,6 +314,22 @@ export function PixelDialogPanel({
                       );
                     }
 
+                    // 显示计时挑战结果（timingChallenge）
+                    if (part.toolInvocation.toolName === "timingChallenge") {
+                      return (
+                        <div key={`${messageIndex}-${partIndex}`} className="my-2">
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-500 mr-2">⏱️ 计时结果:</span>
+                            <span className="text-green-600 font-medium pixel-text bg-green-50 px-2 py-1 rounded text-sm border border-green-200">
+                              {part.toolInvocation.result}
+                            </span>
+                          </div>
+                          {/* 计时结果后添加像素风分割线 */}
+                          <div className="pixel-divider my-4"></div>
+                        </div>
+                      );
+                    }
+
                     // 显示状态更新（updateStats）
                     if (part.toolInvocation.toolName === "updateStats") {
                       return (
@@ -379,6 +404,23 @@ export function PixelDialogPanel({
           box-shadow: 2px 2px 0 0 rgba(0,0,0,0.3);
         }
 
+        .pixel-button-scroll {
+          font-family: "Courier New", monospace;
+          image-rendering: pixelated;
+          transition: all 0.1s;
+          box-shadow: 4px 4px 0 0 rgba(0,0,0,0.2);
+        }
+
+        .pixel-button-scroll:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 5px 5px 0 0 rgba(0,0,0,0.3);
+        }
+
+        .pixel-button-scroll:active {
+          transform: translate(1px, 1px);
+          box-shadow: 2px 2px 0 0 rgba(0,0,0,0.2);
+        }
+
         .pixel-loader {
           width: 8px;
           height: 8px;
@@ -416,6 +458,23 @@ export function PixelDialogPanel({
 
       {/* 滚动锚点 */}
       <div ref={messagesEndRef} />
+      
+      {/* 滚动到底部按钮 - 当用户向上滚动时显示 */}
+      <AnimatePresence>
+        {userScrolledUp && gameStarted && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            onClick={scrollToBottom}
+            className="fixed bottom-32 right-6 pixel-button-scroll bg-white border-2 border-black p-3 shadow-lg hover:shadow-xl"
+            style={{ zIndex: 50 }}
+          >
+            <ArrowDown size={20} className="text-black" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

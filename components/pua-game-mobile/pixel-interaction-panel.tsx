@@ -50,17 +50,17 @@ export function PixelInteractionPanel({
   // 显示选项
   if (interactionMode === "choices" && currentChoices.length > 0) {
     return (
-      <div className="space-y-3">
-        <h3 className="pixel-text text-lg font-bold mb-4 text-center">
+      <div className="space-y-2">
+        <h3 className="pixel-text text-sm font-bold mb-2 text-center">
           CHOOSE ACTION
         </h3>
         {currentChoices.map((choice, index) => (
           <button
             key={index}
             onClick={() => onSelectChoice(choice.text, choice.toolCallId)}
-            className="w-full pixel-button px-4 py-3 bg-blue-500 text-white text-left hover:bg-blue-600 transition-colors"
+            className="w-full pixel-button px-3 py-2 bg-blue-500 text-white text-left hover:bg-blue-600 transition-colors"
           >
-            <span className="pixel-text text-sm">{index + 1}. {choice.text}</span>
+            <span className="pixel-text text-xs">{index + 1}. {choice.text}</span>
           </button>
         ))}
       </div>
@@ -70,8 +70,8 @@ export function PixelInteractionPanel({
   // 显示骰子
   if (interactionMode === "dice") {
     return (
-      <div className="flex flex-col items-center justify-center h-full space-y-6">
-        <h3 className="pixel-text text-lg font-bold">ROLL THE DICE</h3>
+      <div className="flex flex-col items-center justify-center space-y-3 py-2">
+        <h3 className="pixel-text text-sm font-bold">ROLL THE DICE</h3>
         <PixelDice 
           value={diceValue}
           isRolling={isManualRolling}
@@ -85,8 +85,8 @@ export function PixelInteractionPanel({
   // 显示计时条
   if (interactionMode === "timing") {
     return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <h3 className="pixel-text text-lg font-bold">TIMING CHALLENGE</h3>
+      <div className="flex flex-col items-center justify-center space-y-3 py-2">
+        <h3 className="pixel-text text-sm font-bold">TIMING CHALLENGE</h3>
         <PixelTimingBar 
           onComplete={onTimingResult || (() => {})}
           difficulty={timingDifficulty}
@@ -98,13 +98,13 @@ export function PixelInteractionPanel({
 
   // 空闲状态
   return (
-    <div className="flex flex-col items-center justify-center h-full space-y-4">
-      <p className="pixel-text text-center text-gray-600">
+    <div className="flex flex-col items-center justify-center space-y-3 py-3">
+      <p className="pixel-text text-center text-gray-600 text-sm">
         Waiting for next action...
       </p>
       <button
         onClick={onSendHelp}
-        className="pixel-button px-6 py-3 bg-gray-500 text-white"
+        className="pixel-button px-4 py-2 bg-gray-500 text-white text-sm"
       >
         REQUEST HELP
       </button>

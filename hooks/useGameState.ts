@@ -14,6 +14,7 @@ export interface CurrentRound {
   choices?: string[];
   userChoice?: string;
   diceResult?: number;
+  timingResult?: number; // 力度条结果，1-20的数值
   statsChanges?: string;
   timestamp: number;
 }

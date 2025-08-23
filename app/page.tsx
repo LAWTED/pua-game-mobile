@@ -55,7 +55,7 @@ export default function PuaGameMobile() {
     const dataToLog = roundData || currentRound;
     
     // 检查是否有实际内容需要记录
-    if (!dataToLog.aiResponse && !dataToLog.choices && dataToLog.diceResult === undefined && !dataToLog.statsChanges) {
+    if (!dataToLog.aiResponse && !dataToLog.choices && dataToLog.diceResult === undefined && !dataToLog.timingResult && !dataToLog.statsChanges) {
       console.log('跳过空回合记录');
       return;
     }
@@ -79,6 +79,10 @@ export default function PuaGameMobile() {
     
     if (dataToLog.diceResult !== undefined) {
       roundLog += `### 骰子结果\n🎲 ${dataToLog.diceResult}/20\n\n`;
+    }
+    
+    if (dataToLog.timingResult !== undefined) {
+      roundLog += `### 力度条结果\n🎯 ${dataToLog.timingResult}/20\n\n`;
     }
     
     if (dataToLog.statsChanges) {
@@ -208,25 +212,27 @@ export default function PuaGameMobile() {
         const args = toolCall.args as { actionName: string; difficulty: 'easy' | 'medium' | 'hard' };
         
         if (isAutoMode) {
-          // Auto模式：模拟随机计时结果
-          const results = ['perfect', 'good', 'okay', 'miss'] as const;
-          const weights = args.difficulty === 'easy' ? [0.3, 0.4, 0.2, 0.1] :
-                         args.difficulty === 'medium' ? [0.2, 0.3, 0.3, 0.2] :
-                         [0.1, 0.2, 0.4, 0.3]; // hard
+          // Auto模式：模拟随机力度条结果，直接生成1-20的数值
+          let score: number;
           
-          const randomValue = Math.random();
-          let cumulative = 0;
-          let selectedResult: 'perfect' | 'good' | 'okay' | 'miss' = 'miss';
-          
-          for (let i = 0; i < results.length; i++) {
-            cumulative += weights[i];
-            if (randomValue <= cumulative) {
-              selectedResult = results[i];
-              break;
-            }
+          if (args.difficulty === 'easy') {
+            // 简单：更容易得高分
+            score = Math.floor(Math.random() * 15) + 6; // 6-20，偏向高分
+          } else if (args.difficulty === 'medium') {
+            // 中等：平均分布
+            score = Math.floor(Math.random() * 20) + 1; // 1-20
+          } else {
+            // 困难：更容易得低分
+            score = Math.floor(Math.random() * 15) + 1; // 1-15，偏向低分
           }
           
-          return selectedResult;
+          // 记录结果到自动日志
+          setCurrentRound(prev => ({
+            ...prev,
+            timingResult: score
+          }));
+          
+          return score.toString();
         } else {
           // 手动模式：设置UI状态等待用户计时操作
           setTimingToolCallId(toolCall.toolCallId);
@@ -620,18 +626,40 @@ ${args.victoryMessage}
   const handleTimingResult = (result: 'perfect' | 'good' | 'okay' | 'miss') => {
     if (!timingToolCallId) return;
     
+    // 将结果转换为1-20的点数
+    const getTimingScore = (result: 'perfect' | 'good' | 'okay' | 'miss'): number => {
+      switch (result) {
+        case 'perfect': return Math.floor(Math.random() * 4) + 17; // 17-20
+        case 'good': return Math.floor(Math.random() * 5) + 12; // 12-16
+        case 'okay': return Math.floor(Math.random() * 6) + 6; // 6-11
+        case 'miss': return Math.floor(Math.random() * 5) + 1; // 1-5
+      }
+    };
+    
+    const score = getTimingScore(result);
+    
     // 增加当天回合数
     setCurrentDayRounds(prev => prev + 1);
     
-    // 将结果传递给AI
-    addToolResult({
-      toolCallId: timingToolCallId,
-      result: result,
-    });
+    // 记录结果到自动日志（类似骰子）
+    if (isAutoMode) {
+      setCurrentRound(prev => ({
+        ...prev,
+        timingResult: score
+      }));
+    }
     
-    // 重置状态
-    setInteractionMode("idle");
-    setTimingToolCallId(null);
+    // 显示结果一段时间，然后传递给AI（类似骰子的延迟机制）
+    setTimeout(() => {
+      addToolResult({
+        toolCallId: timingToolCallId,
+        result: score.toString(), // 传递数字分数给AI
+      });
+      
+      // 重置状态
+      setInteractionMode("idle");
+      setTimingToolCallId(null);
+    }, 1500); // 给用户时间看到结果
   };
 
   // Auto mode toggle function
@@ -709,7 +737,7 @@ ${args.victoryMessage}
           <div className="pixel-panel bg-white max-w-lg w-full max-h-[80vh] overflow-y-auto p-6">
             <h2 className="pixel-text text-2xl mb-4">游戏说明</h2>
             <div className="pixel-text space-y-2 text-sm">
-              <p>• 游戏持续9天，每天3-4个回合</p>
+              <p>• 游戏持续多天，根据剧情发展</p>
               <p>• 点击底部按钮打开交互区</p>
               <p>• 选择行动会影响数值变化</p>
               <p>• 🎲骰子挑战：随机事件和运气</p>

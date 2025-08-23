@@ -112,7 +112,7 @@ export function SlidingInteractionPanel({
     return (
       <div className="fixed bottom-[4px] left-0 right-0 z-30 p-4">
         <div ref={elementRef} className="pixel-panel bg-white">
-          <div className="px-6 py-8 text-center">
+          <div className="px-4 py-6 text-center">
             <h2 className="pixel-text text-lg font-bold mb-4 text-gray-800">
               学术PUA生存游戏
             </h2>
@@ -138,7 +138,7 @@ export function SlidingInteractionPanel({
         <Carousel setApi={setApi} className="w-full">
           <CarouselContent className="h-auto">
             <CarouselItem className="h-auto">
-              <div className="px-4 py-3 h-auto">
+              <div className="px-3 py-2 h-auto">
                 <PixelStatsPanel
                   statsHistory={statsHistory}
                   statsHighlight={statsHighlight}
@@ -150,7 +150,7 @@ export function SlidingInteractionPanel({
               </div>
             </CarouselItem>
             <CarouselItem className="h-auto">
-              <div className="px-4 py-3 h-auto">
+              <div className="px-3 py-2 h-auto">
                 <PixelInteractionPanel
                   interactionMode={interactionMode}
                   currentChoices={currentChoices}

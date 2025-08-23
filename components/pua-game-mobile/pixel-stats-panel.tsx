@@ -61,13 +61,12 @@ export function PixelStatsPanel({
   };
 
   return (
-    <div className={`${showBorder ? 'pixel-panel' : ''} bg-gray-100 p-4 ${statsHighlight ? 'animate-pulse' : ''}`}>
-      <div className="space-y-4">
+    <div className={`${showBorder ? 'pixel-panel' : ''} bg-gray-100 p-2 ${statsHighlight ? 'animate-pulse' : ''}`}>
+      <div className="space-y-2">
         {/* 核心生存指标 */}
-        <div className="space-y-3">
-          <h3 className="pixel-text text-sm font-bold mb-2 text-center">生存指标</h3>
+        <div className="space-y-2">
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="pixel-text text-xs">🧠 心理韧性</span>
               <span className="pixel-text text-xs">
@@ -77,7 +76,7 @@ export function PixelStatsPanel({
             <StatBar value={stats.mentalResilience} color={getHealthColor(stats.mentalResilience)} />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="pixel-text text-xs">📈 学术进展</span>
               <span className="pixel-text text-xs">
@@ -87,7 +86,7 @@ export function PixelStatsPanel({
             <StatBar value={stats.academicProgress} color={getHealthColor(stats.academicProgress)} />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="pixel-text text-xs">🔍 觉察水平</span>
               <span className="pixel-text text-xs">
