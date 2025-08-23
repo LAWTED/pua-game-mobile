@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
                 mentalResilience: z.number().min(0).max(100).describe("心理韧性最终数值（0-100）"),
                 academicProgress: z.number().min(0).max(100).describe("学术进展最终数值（0-100）"),
                 awarenessLevel: z.number().min(0).max(100).describe("觉察水平最终数值（0-100）"),
-                money: z.number().min(0).max(100).optional().describe("金钱/资源最终数值（0-100，可选）"),
+                money: z.number().min(0).max(100).describe("金钱/资源最终数值（0-100）"),
               })
               .describe(
-                "学生最终数值（mentalResilience、academicProgress、awarenessLevel、money可选）"
+                "学生最终数值（mentalResilience、academicProgress、awarenessLevel、money）"
               ),
             desc: z.string().describe("整体数值变化的简要描述"),
             studentDesc: z.string().describe("学生数值变化的说明"),
@@ -113,6 +113,12 @@ export async function POST(request: NextRequest) {
             evidenceType: z.enum(["录音", "聊天记录", "邮件", "证人证言", "工作记录", "其他"]).describe("证据类型"),
             evidenceDescription: z.string().describe("证据详细描述"),
             importance: z.enum(["低", "中", "高", "关键"]).describe("证据重要程度"),
+          }),
+        },
+        getGameStatus: {
+          description: "获取当前游戏状态，包括天数、数值等信息。当需要了解当前状态时调用，避免在文本中重复描述",
+          parameters: z.object({
+            includeStats: z.boolean().optional().describe("是否包含详细数值信息"),
           }),
         },
       },

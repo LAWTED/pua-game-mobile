@@ -36,7 +36,7 @@ interface SlidingInteractionPanelProps {
       mentalResilience: number;  // 心理韧性 🧠
       academicProgress: number;  // 学术进展 📈
       awarenessLevel: number;    // 觉察水平 🔍
-      money?: number;            // 经济状况 💰 (optional)
+      money: number;             // 经济状况 💰
     };
     desc: string;
     studentDesc: string;
@@ -44,7 +44,7 @@ interface SlidingInteractionPanelProps {
   }[];
   statsHighlight: boolean;
   currentStats: {
-    student: { mentalResilience: number; academicProgress: number; awarenessLevel: number; money?: number };
+    student: { mentalResilience: number; academicProgress: number; awarenessLevel: number; money: number };
   };
   selectedCharacter?: string;
   evidenceCount?: number;

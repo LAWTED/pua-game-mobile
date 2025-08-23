@@ -24,7 +24,7 @@ export interface StatsHistoryItem {
     mentalResilience: number;  // 心理韧性 🧠
     academicProgress: number;  // 学术进展 📈
     awarenessLevel: number;    // 觉察水平 🔍
-    money?: number;           // 金钱 (可选)
+    money: number;            // 金钱 💰
   };
   desc: string;
   studentDesc: string;
@@ -55,7 +55,7 @@ export function useGameState() {
   // 数值系统状态
   const [statsHistory, setStatsHistory] = useState<StatsHistoryItem[]>([]);
   const [currentStats, setCurrentStats] = useState({
-    student: { mentalResilience: 0, academicProgress: 0, awarenessLevel: 0, money: undefined as number | undefined },
+    student: { mentalResilience: 0, academicProgress: 0, awarenessLevel: 0, money: 0 },
   });
 
   // 证据收集系统

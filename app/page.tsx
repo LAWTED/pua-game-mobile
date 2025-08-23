@@ -253,7 +253,7 @@ export default function PuaGameMobile() {
             mentalResilience: number;  // 心理韧性 🧠
             academicProgress: number;  // 学术进展 📈
             awarenessLevel: number;    // 觉察水平 🔍
-            money?: number;            // 金钱 (可选)
+            money: number;             // 金钱 💰
           };
           desc: string;
           studentDesc: string;
@@ -267,7 +267,7 @@ export default function PuaGameMobile() {
           mentalResilience: Math.max(0, Math.min(100, Math.round(studentStats.mentalResilience))),
           academicProgress: Math.max(0, Math.min(100, Math.round(studentStats.academicProgress))),
           awarenessLevel: Math.max(0, Math.min(100, Math.round(studentStats.awarenessLevel))),
-          money: studentStats.money !== undefined ? Math.max(0, Math.min(100, Math.round(studentStats.money))) : oldStats.money,
+          money: Math.max(0, Math.min(100, Math.round(studentStats.money || 0))),
         };
 
         // Helper function to get stat emoji
@@ -277,17 +277,14 @@ export default function PuaGameMobile() {
 
         if (statsHistory.length === 0) {
           // 初始化设置
-          const moneyDisplay = newStudentStats.money !== undefined ? 
-            ` 💰${newStudentStats.money}` : '';
-          statsChangeLog = `初始化数值 - 🧠${newStudentStats.mentalResilience} 📈${newStudentStats.academicProgress} 🔍${newStudentStats.awarenessLevel}${moneyDisplay}`;
+          statsChangeLog = `初始化数值 - 🧠${newStudentStats.mentalResilience} 📈${newStudentStats.academicProgress} 🔍${newStudentStats.awarenessLevel} 💰${newStudentStats.money}`;
         } else {
           // 计算变化量用于显示
           const changes = {
             mentalResilience: newStudentStats.mentalResilience - oldStats.mentalResilience,
             academicProgress: newStudentStats.academicProgress - oldStats.academicProgress,
             awarenessLevel: newStudentStats.awarenessLevel - oldStats.awarenessLevel,
-            money: (newStudentStats.money !== undefined && oldStats.money !== undefined) ? 
-              newStudentStats.money - oldStats.money : 0,
+            money: newStudentStats.money - (oldStats.money || 0),
           };
 
           // 合理性检查：单次变化不应超过25点
@@ -534,6 +531,26 @@ ${args.victoryMessage}
         }
         
         return `📋 证据收集成功${bonusMessage}`;
+      }
+      if (toolCall.toolName === "getGameStatus") {
+        // 返回当前游戏状态
+        const includeStats = (toolCall.args as any)?.includeStats ?? true;
+        
+        let statusInfo = `【第${currentGameDay}天】`;
+        if (dayTitle) {
+          statusInfo += ` ${dayTitle}`;
+        }
+        
+        if (includeStats && currentStats.student) {
+          const { mentalResilience, academicProgress, awarenessLevel, money } = currentStats.student;
+          statusInfo += `\n当前数值：🧠${mentalResilience} 📈${academicProgress} 🔍${awarenessLevel} 💰${money || 0}`;
+          
+          if (evidenceCount > 0) {
+            statusInfo += `\n证据数量：${evidenceCount}份`;
+          }
+        }
+        
+        return statusInfo;
       }
 
       return null;
