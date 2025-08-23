@@ -23,48 +23,62 @@ export function PixelDialogPanel({
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 智能滚动逻辑
+  // 智能滚动逻辑 - 基于AI SDK最佳实践
   useEffect(() => {
     // 如果用户主动向上滚动，不要自动滚动到底部
     if (userScrolledUp) {
       return;
     }
 
-    // 自动滚动到底部，包括流式生成时
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // 自动滚动到底部，无论是流式生成还是生成完成
+    // 这样确保用户能看到实时生成的内容
+    const timeoutId = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50); // 减少延迟，确保流式内容能及时显示
+
+    return () => clearTimeout(timeoutId);
   }, [messages, userScrolledUp]);
 
-  // 监听用户滚动行为
+  // 监听用户滚动行为 - 改进的检测逻辑
   useEffect(() => {
     const container = scrollContainerRef.current?.parentElement?.parentElement;
     if (!container) return;
 
+    let isUserScrolling = false;
+    let scrollTimeout: NodeJS.Timeout;
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px的容差
-
-      // 如果用户滚动到接近底部，认为不再是主动向上滚动
-      if (isNearBottom) {
-        setUserScrolledUp(false);
-      } else {
-        // 如果用户明显向上滚动，标记状态
-        setUserScrolledUp(true);
-      }
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20; // 更小的容差
+      
+      // 标记用户正在滚动
+      isUserScrolling = true;
+      
+      // 清除之前的超时
+      clearTimeout(scrollTimeout);
+      
+      // 设置超时来检测滚动结束
+      scrollTimeout = setTimeout(() => {
+        isUserScrolling = false;
+        
+        // 滚动结束后，根据位置设置状态
+        if (isAtBottom) {
+          setUserScrolledUp(false);
+        } else {
+          setUserScrolledUp(true);
+        }
+      }, 150); // 150ms 后认为滚动结束
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
   }, []);
 
-  // 当生成完成时，如果用户没有主动滚动，自动滚动到底部
-  useEffect(() => {
-    if (status === "idle" && !userScrolledUp) {
-      // 延迟一点确保内容渲染完成
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    }
-  }, [status, userScrolledUp]);
+  // 移除了重复的滚动逻辑，已合并到上面的useEffect中
 
 
   // 复制对话内容到剪贴板
@@ -330,8 +344,8 @@ export function PixelDialogPanel({
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.3, 
+                  transition={{
+                    duration: 0.3,
                     ease: "easeOut",
                     scale: { duration: 0.2 }
                   }}
@@ -402,23 +416,6 @@ export function PixelDialogPanel({
 
       {/* 滚动锚点 */}
       <div ref={messagesEndRef} />
-
-      {/* 回到底部按钮 - 只在用户向上滚动且游戏已开始时显示 */}
-      <AnimatePresence>
-        {userScrolledUp && gameStarted && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            transition={{ duration: 0.2 }}
-            onClick={scrollToBottom}
-            className="fixed bottom-24 right-6 z-40 pixel-button-small p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
-            title="回到最新内容"
-          >
-            <ArrowDown size={20} />
-          </motion.button>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
