@@ -110,7 +110,7 @@ export function SlidingInteractionPanel({
   // 游戏未开始时显示开始按钮
   if (!gameStarted) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-30 p-4">
+      <div className="fixed bottom-[4px] left-0 right-0 z-30 p-4">
         <div ref={elementRef} className="pixel-panel bg-white">
           <div className="px-6 py-8 text-center">
             <h2 className="pixel-text text-lg font-bold mb-4 text-gray-800">
@@ -132,7 +132,7 @@ export function SlidingInteractionPanel({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 p-4">
+    <div className="fixed bottom-[4px] left-0 right-0 z-30 p-4">
       <div ref={elementRef} className="pixel-panel bg-white">
         {/* 轮播内容区 */}
         <Carousel setApi={setApi} className="w-full">
