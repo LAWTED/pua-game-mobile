@@ -1,18 +1,10 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import useMeasure from "react-use-measure";
-import { motion } from "framer-motion";
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from "@/components/ui/carousel";
 import { PixelInteractionPanel, PixelStatsPanel } from "@/components/pua-game-mobile";
-
-// 定义交互类型
-type InteractionMode = "idle" | "choices" | "dice";
-
-interface Choice {
-  text: string;
-  toolCallId: string;
-}
+import { type InteractionMode, type Choice } from "@/hooks/useGameState";
 
 type PanelView = "stats" | "interaction";
 
@@ -29,6 +21,11 @@ interface SlidingInteractionPanelProps {
   onDiceClick: () => void;
   onSendHelp: () => void;
   onStartGame: () => void;
+  onTimingResult?: (result: 'perfect' | 'good' | 'okay' | 'miss') => void;
+  
+  // 计时条相关
+  timingActionName?: string;
+  timingDifficulty?: 'easy' | 'medium' | 'hard';
   
   // 动态高度回调
   onHeightChange: (height: number) => void;
@@ -39,6 +36,7 @@ interface SlidingInteractionPanelProps {
       mentalResilience: number;  // 心理韧性 🧠
       academicProgress: number;  // 学术进展 📈
       awarenessLevel: number;    // 觉察水平 🔍
+      money?: number;            // 经济状况 💰 (optional)
     };
     desc: string;
     studentDesc: string;
@@ -46,8 +44,10 @@ interface SlidingInteractionPanelProps {
   }[];
   statsHighlight: boolean;
   currentStats: {
-    student: { mentalResilience: number; academicProgress: number; awarenessLevel: number };
+    student: { mentalResilience: number; academicProgress: number; awarenessLevel: number; money?: number };
   };
+  selectedCharacter?: string;
+  evidenceCount?: number;
 }
 
 export function SlidingInteractionPanel({
@@ -60,10 +60,14 @@ export function SlidingInteractionPanel({
   onDiceClick,
   onSendHelp,
   onStartGame,
+  onTimingResult,
+  timingActionName,
+  timingDifficulty,
   onHeightChange,
   statsHistory,
   statsHighlight,
   currentStats,
+  evidenceCount = 0,
 }: SlidingInteractionPanelProps) {
   const [view, setView] = useState<PanelView>("stats");
   const [elementRef, bounds] = useMeasure();
@@ -140,6 +144,8 @@ export function SlidingInteractionPanel({
                   statsHighlight={statsHighlight}
                   showBorder={false}
                   currentStats={currentStats}
+                  showMoney={true}
+                  evidenceCount={evidenceCount}
                 />
               </div>
             </CarouselItem>
@@ -154,6 +160,9 @@ export function SlidingInteractionPanel({
                   onSelectChoice={onSelectChoice}
                   onDiceClick={onDiceClick}
                   onSendHelp={onSendHelp}
+                  onTimingResult={onTimingResult}
+                  timingActionName={timingActionName}
+                  timingDifficulty={timingDifficulty}
                 />
               </div>
             </CarouselItem>

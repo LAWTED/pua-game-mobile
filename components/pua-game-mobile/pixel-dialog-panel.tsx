@@ -30,16 +30,9 @@ export function PixelDialogPanel({
       return;
     }
 
-    // 如果正在流式生成（streaming），给用户查看历史内容的自由
-    if (status === "streaming") {
-      return;
-    }
-
-    // 只在非流式状态且用户未主动滚动时，才自动滚动到底部
-    if (status === "idle" || status === "submitted") {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, status, userScrolledUp]);
+    // 自动滚动到底部，包括流式生成时
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, userScrolledUp]);
 
   // 监听用户滚动行为
   useEffect(() => {

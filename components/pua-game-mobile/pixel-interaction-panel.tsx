@@ -1,5 +1,7 @@
 import React from "react";
 import { Dices } from "lucide-react";
+import { PixelDice } from "./pixel-dice";
+import { PixelTimingBar } from "./pixel-timing-bar";
 
 interface Choice {
   text: string;
@@ -7,7 +9,7 @@ interface Choice {
 }
 
 interface PixelInteractionPanelProps {
-  interactionMode: "idle" | "choices" | "dice";
+  interactionMode: "idle" | "choices" | "dice" | "timing";
   currentChoices: Choice[];
   diceValue: number | null;
   isManualRolling: boolean;
@@ -15,6 +17,9 @@ interface PixelInteractionPanelProps {
   onSelectChoice: (choice: string, toolCallId: string) => void;
   onDiceClick: () => void;
   onSendHelp: () => void;
+  onTimingResult?: (result: 'perfect' | 'good' | 'okay' | 'miss') => void;
+  timingActionName?: string;
+  timingDifficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export function PixelInteractionPanel({
@@ -25,7 +30,10 @@ export function PixelInteractionPanel({
   gameStarted,
   onSelectChoice,
   onDiceClick,
-  onSendHelp
+  onSendHelp,
+  onTimingResult,
+  timingActionName = "ACTION",
+  timingDifficulty = "medium"
 }: PixelInteractionPanelProps) {
 
   // 未开始游戏时不显示内容（由底部按钮处理）
@@ -64,29 +72,26 @@ export function PixelInteractionPanel({
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-6">
         <h3 className="pixel-text text-lg font-bold">ROLL THE DICE</h3>
+        <PixelDice 
+          value={diceValue}
+          isRolling={isManualRolling}
+          onRoll={onDiceClick}
+          disabled={isManualRolling || diceValue !== null}
+        />
+      </div>
+    );
+  }
 
-        <div className="relative">
-          <button
-            onClick={onDiceClick}
-            disabled={isManualRolling || diceValue !== null}
-            className={`pixel-dice ${isManualRolling ? 'animate-spin' : ''}`}
-          >
-            {diceValue !== null ? (
-              <span className="pixel-text text-4xl font-bold">{diceValue}</span>
-            ) : (
-              <Dices size={48} />
-            )}
-          </button>
-        </div>
-
-        {diceValue !== null && (
-          <div className="pixel-text text-center">
-            <p className="text-lg font-bold">RESULT: {diceValue}</p>
-            <p className="text-sm text-gray-600 mt-2">
-              {diceValue >= 12 ? "SUCCESS!" : "FAILED!"}
-            </p>
-          </div>
-        )}
+  // 显示计时条
+  if (interactionMode === "timing") {
+    return (
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <h3 className="pixel-text text-lg font-bold">TIMING CHALLENGE</h3>
+        <PixelTimingBar 
+          onComplete={onTimingResult || (() => {})}
+          difficulty={timingDifficulty}
+          actionName={timingActionName}
+        />
       </div>
     );
   }
@@ -107,41 +112,3 @@ export function PixelInteractionPanel({
   );
 }
 
-// CSS styles in JSX
-const styles = `
-  .pixel-dice {
-    width: 100px;
-    height: 100px;
-    background: white;
-    border: 4px solid #000;
-    box-shadow:
-      0 0 0 4px #fff,
-      0 0 0 8px #000,
-      8px 8px 0 8px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.1s;
-  }
-
-  .pixel-dice:active:not(:disabled) {
-    transform: translate(2px, 2px);
-    box-shadow:
-      0 0 0 4px #fff,
-      0 0 0 8px #000,
-      6px 6px 0 6px rgba(0,0,0,0.2);
-  }
-
-  .pixel-dice:disabled {
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-`;
-
-// Add styles to component
-if (typeof window !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = styles;
-  document.head.appendChild(styleElement);
-}

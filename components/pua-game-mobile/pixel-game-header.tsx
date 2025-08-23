@@ -5,16 +5,12 @@ interface PixelGameHeaderProps {
   onShowInstructions: () => void;
   isAutoMode?: boolean;
   onToggleAutoMode?: () => void;
-  currentGameDay?: number;
-  dayTitle?: string;
 }
 
 export function PixelGameHeader({
   onShowInstructions,
   isAutoMode = false,
-  onToggleAutoMode,
-  currentGameDay = 1,
-  dayTitle = ""
+  onToggleAutoMode
 }: PixelGameHeaderProps) {
   return (
     <div className="pixel-header bg-black text-white p-4">
@@ -22,23 +18,11 @@ export function PixelGameHeader({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <h1 className="pixel-text text-xl font-bold">PUA GAME</h1>
-            {currentGameDay && (
-              <div className="pixel-button-small p-1 bg-orange-600 flex items-center gap-1">
-                <span className="text-xs">第{currentGameDay}天</span>
-                {dayTitle && <span className="text-xs">·{dayTitle}</span>}
-              </div>
-            )}
           </div>
-          {isAutoMode && (
-            <div className="flex items-center gap-1 pixel-button-small p-1 bg-green-600">
-              <Zap size={12} />
-              <span className="text-xs">AUTO</span>
-            </div>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
-          {onToggleAutoMode && (
+          {onToggleAutoMode && process.env.NODE_ENV === 'development' && (
             <button
               onClick={onToggleAutoMode}
               className={`pixel-button-small p-2 flex items-center gap-1 ${

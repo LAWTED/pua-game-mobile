@@ -6,6 +6,7 @@ interface StatsHistory {
     mentalResilience: number;  // 心理韧性 🧠
     academicProgress: number;  // 学术进展 📈
     awarenessLevel: number;    // 觉察水平 🔍
+    money?: number;            // 经济状况 💰 (optional)
   };
   desc: string;
   studentDesc: string;
@@ -16,11 +17,14 @@ interface PixelStatsPanelProps {
   statsHistory: StatsHistory[];
   statsHighlight: boolean;
   showBorder?: boolean;
+  showMoney?: boolean; // Whether to display money stat
+  evidenceCount?: number; // Evidence collection counter
   currentStats: {
     student: {
       mentalResilience: number;
       academicProgress: number;
       awarenessLevel: number;
+      money?: number;
     };
   };
 }
@@ -29,6 +33,8 @@ export function PixelStatsPanel({
   statsHistory,
   statsHighlight,
   showBorder = true,
+  showMoney = false,
+  evidenceCount = 0,
   currentStats
 }: PixelStatsPanelProps) {
   const stats = currentStats.student;
@@ -90,6 +96,34 @@ export function PixelStatsPanel({
             </div>
             <StatBar value={stats.awarenessLevel} color={getHealthColor(stats.awarenessLevel)} />
           </div>
+
+          {/* Money stat - simple universal display */}
+          {showMoney && stats.money !== undefined && (
+            <div className="space-y-2 border-t border-gray-300 pt-2 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="pixel-text text-xs">💰 经济状况</span>
+                <span className="pixel-text text-xs">
+                  <NumberFlow value={stats.money} />
+                </span>
+              </div>
+              <StatBar value={stats.money} color={getHealthColor(stats.money)} />
+            </div>
+          )}
+
+          {/* Evidence counter */}
+          {evidenceCount > 0 && (
+            <div className="border-t border-gray-300 pt-2 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="pixel-text text-xs">📋 收集证据</span>
+                <span className="pixel-text text-xs font-bold text-blue-600">
+                  <NumberFlow value={evidenceCount} />
+                </span>
+              </div>
+              <div className="pixel-text text-[10px] text-gray-500 mt-1">
+                {evidenceCount >= 3 ? "🎯 证据充足，可提前胜利" : "🔍 继续收集中..."}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 状态说明 */}
