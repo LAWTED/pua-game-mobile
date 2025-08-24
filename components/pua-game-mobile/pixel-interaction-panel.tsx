@@ -1,5 +1,4 @@
 import React from "react";
-import { Dices } from "lucide-react";
 import { PixelDice } from "./pixel-dice";
 import { PixelTimingBar } from "./pixel-timing-bar";
 
@@ -73,8 +72,6 @@ export function PixelInteractionPanel({
       <div className="flex flex-col items-center justify-center space-y-3 py-2">
         <h3 className="pixel-text text-sm font-bold">ROLL THE DICE</h3>
         <PixelDice 
-          value={diceValue}
-          isRolling={isManualRolling}
           onRoll={onDiceClick}
           disabled={isManualRolling || diceValue !== null}
         />
