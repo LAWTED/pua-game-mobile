@@ -113,17 +113,26 @@ export default function PuaGameMobile() {
 
 ## 当前游戏状态
 **天数**: 第${currentGameDay}天
-**当天回合数**: ${currentDayRounds}/3 (超过3个回合必须推进到下一天)
+**当前交互次数**: ${currentDayRounds}次
+
+## 天数推进规则
+- 第1天：3-5次交互（初次见面，建立关系）
+- 第2-4天：4-6次交互（剧情逐步发展）
+- 第5天：4-5次交互（高潮与结局）
+- **当前建议**: ${currentGameDay === 1 ? `已进行${currentDayRounds}/5次，${currentDayRounds >= 3 ? '可以考虑推进到第2天' : '继续发展剧情'}` : 
+  currentGameDay === 5 ? `已进行${currentDayRounds}/5次，${currentDayRounds >= 4 ? '准备结局' : '推向高潮'}` :
+  `已进行${currentDayRounds}/6次，${currentDayRounds >= 4 ? '应该推进到下一天' : '继续当天剧情'}`}
 
 ## 当前学生状态  
 - 🧠 心理韧性: ${stats.mentalResilience}/100
 - 📈 学术进展: ${stats.academicProgress}/100  
 - 🔍 觉察水平: ${stats.awarenessLevel}/100
+- 💰 经济状况: ${stats.money}/100
 
-**重要检查**: 
-1. 如果当天回合数≥3，必须立即调用setGameDay推进到第${currentGameDay + 1}天
-2. 任何数值变化都必须调用updateStats工具，严禁在文本中描述
-3. 根据以上数值状态调整剧情和选项，严格遵循数值阈值影响规则`;
+**执行检查**: 
+1. 当前是否应该推进天数？（根据交互次数和剧情完成度）
+2. 任何数值变化都必须调用updateStats工具
+3. 根据数值状态调整剧情和选项`;
       
       enhancedPrompt += statusInfo;
     }
